@@ -75,6 +75,12 @@ list-roles:
 lint:
     scripts/lint.bash
 
+# Check every odem-* role for clone-relative copy srcs missing remote_src —
+# the class that broke tmux/kitty/rofi/qtile (scripts/check-remote-src.py;
+# invisible to --syntax-check, --list-tasks and the validation sweep)
+check-remote-src:
+    scripts/check-remote-src.py
+
 # Run a Molecule scenario for a single role (name or odem.<col>.<role> FQN)
 molecule role:
     scripts/molecule.bash "{{role}}"

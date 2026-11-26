@@ -144,7 +144,7 @@ Do **not** reintroduce the historical `<ROLE_NAME> - <message>` prefix. The firs
 
 ## Platform support conventions
 
-`odem.*` roles support the **Debian** and **RedHat** platform families. The platform gate lives exactly once, in `odem.os.user` (`tasks/main.yml`):
+`odem.*` roles support the **Debian** and **RedHat** platform families. The platform gate lives exactly once, in `odem.os.user` (`tasks/identity.yml`):
 
 ```yaml
 - name: Assert supported target platform
@@ -155,7 +155,7 @@ Do **not** reintroduce the historical `<ROLE_NAME> - <message>` prefix. The firs
     quiet: true
 ```
 
-The assert runs only where `odem.os.user` is applied as a role (`playbooks/bootstrap.yml`); plays that only resolve identity via the guard do not assert. Leaf roles do **not** re-assert the platform — they branch per family with `when: ansible_facts['os_family'] == 'Debian'` / `== 'RedHat'` conditions. Debian-only features (debconf, `/etc/default/*`, tasksel, `update-alternatives`, apt sources templates) are gated to `== 'Debian'` and skipped on Fedora.
+The assert lives in `identity.yml`, so it fires wherever identity is resolved — in `odem.os.user` itself and in every consuming role's lazy guard (see [Identity resolution protocol](#identity-resolution-protocol)) — not only where the role is applied explicitly. Leaf roles do **not** re-assert the platform — they branch per family with `when: ansible_facts['os_family'] == 'Debian'` / `== 'RedHat'` conditions. Debian-only features (debconf, `/etc/default/*`, tasksel, `update-alternatives`, apt sources templates) are gated to `== 'Debian'` and skipped on Fedora.
 
 ### Package installation — dnf CLI pattern on RedHat
 

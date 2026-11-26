@@ -9,6 +9,10 @@
 set -uo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/git.bash"
 cd "$REPO_ROOT" || exit 1
+# Let ansible-lint resolve cross-collection role references (the molecule
+# converge.yml syntax-check) against the locally installed collections —
+# run `just install-forced` first.
+export ANSIBLE_COLLECTIONS_PATH="${ANSIBLE_COLLECTIONS_PATH:-$REPO_ROOT/../.ansible/ansible_collections}"
 
 passed=0
 failed=0
