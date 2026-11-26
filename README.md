@@ -13,6 +13,7 @@ just bootstrap home                # playbooks/bootstrap.yml → inventories/hom
 just bootstrap srv --limit srv     # … limited to the `srv` group
 just run srv all --limit local     # generic form: run <inv> <playbook> [args…]
 just run home bootstrap -K         # extra args pass through to ansible-playbook
+just install-forced                # build + install the sibling odem-* collections
 just check srv                     # syntax-check every playbook
 just graph home                    # inventory tree (hosts + groups)
 ```
@@ -57,7 +58,7 @@ $EDITOR <name>/host_vars/*.yml   # per-host values
   `all` chains the full server stack
   (`bootstrap → terminal_full → services → alloy → hardening`).
 - Collections are built + installed locally via `just install-forced` in
-  `manage/` (`../.ansible/ansible_collections`); each `ansible.cfg` picks
+  this repo (`../.ansible/ansible_collections`); each `ansible.cfg` picks
   that up via `collections_path`.
 - No `galaxy.yml` — this is an overlay consuming the `odem.*` collections.
 

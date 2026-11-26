@@ -49,7 +49,7 @@ playbook-example/
   `merge-ansible-configs.bash` (mps-terminal-scripts).
 - **`host_vars/<host>.yml`** holds per-host values.
 - **ansible.cfg**: `collections_path = ./../../../.ansible:~/.ansible/collections`
-  → picks up the `just install-forced` output from `manage/`.
+  → picks up the `just install-forced` output from this repo.
 - No `galaxy.yml` — an overlay consuming the collections, not a collection.
 
 ## Justfile
@@ -58,6 +58,8 @@ playbook-example/
   `inventory` defaults to `home`.
 - `just run <inventory> <playbook> [args…]` — generic form; extra args pass
   through to ansible-playbook (`--limit <subset>` narrows to groups/hosts).
+- `just install-forced` — force build + force-install every sibling `odem-*`
+  collection into `../.ansible/ansible_collections` (moved from `manage/`).
 - `just check <inventory>` — syntax-check every playbook.
 - `just graph <inventory>` — inventory tree; `just list` — inventories +
   playbooks.
@@ -73,8 +75,12 @@ playbook-example/
 - srv `dsktest.yml` → `wazuh.yml` (deploys the wazuh agent to `all` hosts).
 - srv `ansible.cfg` default inventory fixed to `./inventory.ini` (was a
   stale `./inventory_vm.ini`).
+- `install-forced` moved here from `manage/` (2026-11-26) — the playbook repo
+  owns the collection build + install step; manage keeps `lint` / `molecule`
+  / `publish` / `list-roles` / `docker-*` / the cross-repo git targets.
+- `run-example` retired from `manage/` — covered here by `run` + the
+  per-playbook targets (`--limit` / `-i` passthrough).
 
 ## See also
-
+- `manage/Justfile` — `lint`, `molecule`, `publish`, `list-roles`, `git-clone`, …
 - `manage/AGENTS.md` — cross-collection conventions
-- `manage/Justfile` — `install-forced`, `lint`, `git-clone`, …

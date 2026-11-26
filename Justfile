@@ -4,6 +4,9 @@
 # Every playbook targets `all` hosts of the selected inventory; narrow to
 # groups/hosts by passing `--limit <subset>` (or any other ansible-playbook
 # argument) through the extra args.
+#
+# `just install-forced` builds + force-installs the sibling odem-* collections
+# into ../.ansible/ansible_collections — the path each ansible.cfg reads.
 
 # List inventories and playbooks
 list:
@@ -48,6 +51,48 @@ check inventory='home':
         ansible-playbook --syntax-check "$pb"
         echo "OK  $(basename "$pb")"
     done
+
+# Force build every sibling odem-* collection tarball and force-install it
+# into the local collections path — the path every inventories/<name>/
+# ansible.cfg picks up via collections_path. Playbook runs (`run`, `check`,
+# per-playbook targets) resolve the odem.* collections from there.
+# Moved here from manage/ (2026-11): the playbook repo owns the install step.
+install-forced collections_path="../.ansible/ansible_collections":
+    #!/usr/bin/env bash
+    set -uo pipefail
+    mkdir -p "{{collections_path}}"
+    built=0
+    installed=0
+    failed=0
+    for repo in ../odem-*/; do
+        if [ ! -f "${repo}galaxy.yml" ]; then
+            continue
+        fi
+        echo "==> $repo"
+        if (cd "$repo" && ansible-galaxy collection build --force 2>&1 | tail -2); then
+            built=$((built + 1))
+        else
+            echo "  ERROR: build failed"
+            failed=$((failed + 1))
+            echo
+            continue
+        fi
+        tarball=$(ls -t "${repo}"odem-*.tar.gz 2>/dev/null | head -1)
+        if [ -z "$tarball" ]; then
+            echo "  ERROR: no tarball after build"
+            failed=$((failed + 1))
+            echo
+            continue
+        fi
+        if ansible-galaxy collection install "$tarball" --force -p "{{collections_path}}" 2>&1 | tail -2; then
+            installed=$((installed + 1))
+        else
+            echo "  ERROR: install failed"
+            failed=$((failed + 1))
+        fi
+        echo
+    done
+    echo "Summary: $built built, $installed installed, $failed failed"
 
 # --- Per-playbook targets -----------------------------------------------------
 # Each takes the inventory as first parameter (default `home`, see `just
