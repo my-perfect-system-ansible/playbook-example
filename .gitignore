@@ -1,3 +1,6 @@
 # Vault password files — one per inventory, written by
 # `just vault-pass-create <inventory>`. NEVER commit these.
 inventories/*/vault-pass
+
+# Galaxy publish token loaded by scripts/publish.bash — never commit.
+.env

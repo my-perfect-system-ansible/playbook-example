@@ -19,6 +19,12 @@ just vault-create home              # encrypted inventories/home/group_vars/all/
 just vault-edit home                # edit it ($EDITOR); vault-view prints it
 just check srv                     # syntax-check every playbook
 just graph home                    # inventory tree (hosts + groups)
+
+just git-clone                    # clone every missing sibling repo (fresh install)
+just git-status                   # git status + last commit per sibling repo
+just git-pull                     # fast-forward pull per repo; skip dirty
+just git-commit 'msg'             # add + commit + push, every dirty repo
+just publish                      # ansible-galaxy publish per odem-* (GALAXY_API_TOKEN or .env)
 ```
 
 In-place apply (run on the machine itself):
@@ -33,7 +39,7 @@ just run home bootstrap -i inventory_local.ini     # home: secondary ini
 | Path | Content |
 |---|---|
 | `playbooks/` | common playbooks — tier chains, `services`, `alloy`, `hardening`, `wazuh`, `all`, `testing` — all `hosts: all` |
-| `scripts/` | the Justfile's logic — `run-playbook.bash`, `check-playbooks.bash`, `install-collections.bash`, `vault.bash` (recipes are thin wrappers) |
+| `scripts/` | the Justfile's logic — `run-playbook.bash`, `check-playbooks.bash`, `install-collections.bash`, `git-{clone,status,pull,commit}.bash` (+ `git-repos.bash`), `publish.bash`, `vault.bash` (recipes are thin wrappers) |
 | `inventories/<name>/ansible.cfg` | `collections_path` + connection settings (`inventory = ./inventory.ini`) |
 | `inventories/<name>/inventory.ini` | hosts + groups of that inventory |
 | `inventories/home/inventory_local.ini` | in-place apply variant (same host as the ssh entry, kept separate to avoid var conflicts) |

@@ -9,6 +9,8 @@
 #   run-playbook.bash / check-playbooks.bash    playbook runs + syntax checks
 #   install-collections.bash                   odem-* build + force-install
 #   vault.bash                                  vault lifecycle + password resolution
+#   git-{clone,status,pull,commit}.bash (+ git-repos.bash)   cross-repo git ops
+#   publish.bash                                Galaxy publish per odem-* collection
 
 # List inventories and playbooks
 list:
@@ -50,6 +52,32 @@ check inventory='home':
 # via collections_path (scripts/install-collections.bash).
 install-forced collections_path="../.ansible/ansible_collections":
     scripts/install-collections.bash "{{collections_path}}"
+
+# --- Cross-repo git + Galaxy publish (scripts/git-*.bash, publish.bash) ---
+# The scripts iterate every sibling repo (list + clone URLs in
+# scripts/git-repos.bash): odem-*/manage/playbook-example in the
+# my-perfect-system-ansible org, mps-* two levels up in my-perfect-system.
+
+# Clone every missing sibling repo from GitHub (fresh-install helper)
+git-clone:
+    scripts/git-clone.bash
+
+# Show git status + last commit of every sibling repo
+git-status:
+    scripts/git-status.bash
+
+# Fast-forward pull every sibling repo; skip dirty working trees
+git-pull:
+    scripts/git-pull.bash
+
+# Add, commit (with MSG), and push every dirty sibling repo
+git-commit msg:
+    scripts/git-commit.bash "{{msg}}"
+
+# Publish every odem-* collection to Ansible Galaxy — GALAXY_API_TOKEN
+# from the environment or .env at the repo root
+publish server='':
+    scripts/publish.bash "{{server}}"
 
 # --- Vault (scripts/vault.bash) ------------------------------------------------
 # Secrets live encrypted at inventories/<name>/group_vars/all/vault.yml

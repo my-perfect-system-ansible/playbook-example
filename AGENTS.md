@@ -11,10 +11,13 @@ inventory-agnostic and every environment detail lives in
 ```
 playbook-example/
 ├── Justfile                    # thin wrappers — logic in scripts/
-├── scripts/                   # run-playbook / check-playbooks / install-collections / vault
+├── scripts/                   # run-playbook / check-playbooks / install-collections / vault / git-* / publish
 │   ├── run-playbook.bash      # cd inventory + vault pw resolution + ansible-playbook
 │   ├── check-playbooks.bash   # --syntax-check every playbook
 │   ├── install-collections.bash # odem-* build + force-install (install-forced)
+│   ├── git-repos.bash         # shared sibling-repo list + clone URLs (sourced by git-* and publish)
+│   ├── git-{clone,status,pull,commit}.bash  # cross-repo git ops (moved from manage/)
+│   ├── publish.bash           # ansible-galaxy collection publish per odem-* (moved from manage/)
 │   └── vault.bash             # vault lifecycle; also the shared pw-resolution lib (sourced by run-playbook.bash)
 ├── playbooks/                  # COMMON playbooks — hosts: all
 │   ├── bootstrap.yml           #   odem.os.user + settings + packages + tools
@@ -71,10 +74,12 @@ playbook-example/
 
 - Recipes are thin wrappers — the logic lives in `scripts/`:
   `run-playbook.bash` (run), `check-playbooks.bash` (check),
-  `install-collections.bash` (install-forced) and `vault.bash` (the
-  `vault-*` targets). `vault.bash` doubles as the shared library:
-  `resolve_vault_password` sets the `VA` array, sourced by the other two
-  under its `BASH_SOURCE` main guard.
+  `install-collections.bash` (install-forced), `vault.bash` (the
+  `vault-*` targets) and — moved from `manage/` (2026-11-26) —
+  `git-{clone,status,pull,commit}.bash` + `publish.bash`. Two shared
+  libraries sourced under their `BASH_SOURCE` main guards:
+  `vault.bash` (`resolve_vault_password` sets the `VA` array) and
+  `git-repos.bash` (`REPOS` list + `repo_url`).
 
 - `just <playbook> [inventory] [args…]` — one target per playbook,
   `inventory` defaults to `home`.
@@ -82,6 +87,10 @@ playbook-example/
   through to ansible-playbook (`--limit <subset>` narrows to groups/hosts).
 - `just install-forced` — force build + force-install every sibling `odem-*`
   collection into `../.ansible/ansible_collections` (moved from `manage/`).
+- `just git-{clone,status,pull}` / `just git-commit 'msg'` — cross-repo git
+  ops over every sibling repo, and `just publish [server]` —
+  `ansible-galaxy collection publish` per `odem-*` collection (token from
+  `GALAXY_API_TOKEN` or `.env`). All moved from `manage/` (2026-11-26).
 - `just vault-{pass-create,create,edit,view,rekey,encrypt,decrypt,status}` —
   manage `inventories/<inv>/group_vars/all/vault.yml`; password file at
   `inventories/<inv>/vault-pass` (gitignored), `VAULT_ASK=1` to prompt;
@@ -102,8 +111,11 @@ playbook-example/
 - srv `ansible.cfg` default inventory fixed to `./inventory.ini` (was a
   stale `./inventory_vm.ini`).
 - `install-forced` moved here from `manage/` (2026-11-26) — the playbook repo
-  owns the collection build + install step; manage keeps `lint` / `molecule`
-  / `publish` / `list-roles` / `docker-*` / the cross-repo git targets.
+  owns the collection build + install step.
+- The cross-repo git targets (`git-clone` / `git-status` / `git-pull` /
+  `git-commit`) and `publish` moved here from `manage/` (2026-11-26);
+  `manage/` keeps `lint` / `molecule` / `list-roles` / `list-collections`
+  over `COLLECTIONS` (the eight `odem-*` repos).
 - `run-example` retired from `manage/` — covered here by `run` + the
   per-playbook targets (`--limit` / `-i` passthrough).
 - Vault infrastructure (2026-11-26): the `vault-*` targets + the
@@ -115,5 +127,5 @@ playbook-example/
   (was duplicated inline across `run`, `check` and every vault recipe).
 
 ## See also
-- `manage/Justfile` — `lint`, `molecule`, `publish`, `list-roles`, `git-clone`, …
+- `manage/Justfile` — `lint` / `molecule` / `list-roles` / `list-collections` (collection-level targets)
 - `manage/AGENTS.md` — cross-collection conventions
