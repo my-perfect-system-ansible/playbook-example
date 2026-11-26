@@ -1,6 +1,4 @@
 ---
-- import_playbook: terminal_full.yml
-
 - name: Configure desktop (full)
   hosts: all
   become: true

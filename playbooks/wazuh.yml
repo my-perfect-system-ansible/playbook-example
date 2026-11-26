@@ -1,6 +1,0 @@
----
-- name: Deploy wazuh agent
-  hosts: all
-  become: true
-  roles:
-    - odem.hardening.wazuh

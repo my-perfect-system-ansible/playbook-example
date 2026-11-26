@@ -1,6 +1,4 @@
 ---
-# - import_playbook: terminal_minimal.yml
-
 - name: Configure desktop (minimal)
   hosts: all
   become: true

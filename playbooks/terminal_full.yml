@@ -1,6 +1,4 @@
 ---
-- import_playbook: bootstrap.yml
-
 - name: Configure terminal (full)
   hosts: all
   become: true

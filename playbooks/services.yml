@@ -1,6 +1,4 @@
 ---
-# - import_playbook: terminal_full.yml
-
 - name: Deploy services
   hosts: all
   become: true

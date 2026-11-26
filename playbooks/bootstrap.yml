@@ -4,7 +4,7 @@
   become: true
 
   roles:
-    - odem.os.user
-    - odem.os.settings
     - odem.os.packages
     - odem.os.tools
+    - odem.os.settings
+    - odem.os.user
