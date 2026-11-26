@@ -155,7 +155,7 @@ Do **not** reintroduce the historical `<ROLE_NAME> - <message>` prefix. The firs
     quiet: true
 ```
 
-Leaf roles do **not** re-assert the platform — they branch per family with `when: ansible_facts['os_family'] == 'Debian'` / `== 'RedHat'` conditions. Debian-only features (debconf, `/etc/default/*`, tasksel, `update-alternatives`, apt sources templates) are gated to `== 'Debian'` and skipped on Fedora.
+The assert runs only where `odem.os.user` is applied as a role (`playbooks/bootstrap.yml`); plays that only resolve identity via the guard do not assert. Leaf roles do **not** re-assert the platform — they branch per family with `when: ansible_facts['os_family'] == 'Debian'` / `== 'RedHat'` conditions. Debian-only features (debconf, `/etc/default/*`, tasksel, `update-alternatives`, apt sources templates) are gated to `== 'Debian'` and skipped on Fedora.
 
 ### Package installation — dnf CLI pattern on RedHat
 
@@ -193,7 +193,7 @@ Until ansible-core supports Python 3.15, this pin is required on Fedora 45+.
 
 ## `odem.os.user` — merged per-user role
 
-`odem.os.user` (in `odem-os/roles/user/`) is the **single source of truth** for the per-user identity data model and resolve protocol, and the merged home of the former `odem.base.identity`, `odem.users.users`, `groups`, `ssh`, and `sudo` roles. Every per-user role declares it as a `meta/main.yml` dependency — there is no per-role `resolve.yml` step.
+`odem.os.user` (in `odem-os/roles/user/`) is the **single source of truth** for the per-user identity data model and resolve protocol, and the merged home of the former `odem.base.identity`, `odem.users.users`, `groups`, `ssh`, and `sudo` roles. No per-user role meta-depends on it — every consuming role resolves identity lazily via a first-task guard (see [Identity resolution protocol](#identity-resolution-protocol)); there is neither a per-role `resolve.yml` nor a meta dependency. The role's account management (groups, users, SSH, sudo, folders) only runs where the role is applied explicitly, e.g. `playbooks/bootstrap.yml`.
 
 Orchestrator `tasks/main.yml`: platform assert → `identity.yml` → `folders.yml` (gated) → `groups.yml` → `users.yml` → `ssh.yml` → `sudo.yml`.
 
@@ -223,7 +223,7 @@ Both inputs to the identity model are declared and defaulted **exactly once** in
 - `odem-os/roles/user/meta/argument_specs.yml` — canonical spec, including the **full single-entity schema** for a `user_catalog` entry (every supported field: `name`, `uid`, `group`, `groups`, `append_groups`, `comment`, `shell`, `home`, `create_home`, `system`, `expires`, `password`, `ssh_keys`, `authorized_keys`, `sudo`, `user_roles`).
 - `odem-os/roles/user/defaults/main.yml` — canonical defaults, including the ecosystem-wide `user_default_*` globals, per-user field defaults (`user_shell`, `user_create_home`, `user_system`, `user_expires`, `user_groups`, `user_admin_groups`, `user_append_groups`, `user_password`), two role-set profiles (`user_roles_default`, `user_roles_minimal`), group management (`user_groups_list`, `user_enable_group_extraction`), sudo macros (`user_sudo_macros`, `user_sudo_macros_file`), and empty `user_catalog: {}` / `user_list: []` ready to be overridden per host.
 
-Per-user roles **do not** declare `user_catalog` or `user_list` in their own `argument_specs.yml` or `defaults/main.yml` — they flow through the play scope to the user role via the dependency chain. Re-declaring them would duplicate the schema and risk drift.
+Per-user roles **do not** declare `user_catalog` or `user_list` in their own `argument_specs.yml` or `defaults/main.yml` — they flow through the play scope into the lazy identity guard. Re-declaring them would duplicate the schema and risk drift.
 
 ### Filter plugins
 
@@ -237,6 +237,23 @@ The historical per-role `resolve.yml` was removed from every role. The steps now
 2. **Resolve** — combine catalog entry with id/name/state/user_roles into `user_resolved`
 3. **Split** — filter into present/absent lists
 4. **Extract** — flatten each present user's `group` and `groups` fields into `user_group_names`
+
+Consumer roles invoke the protocol via the **lazy identity guard** — the first task of every identity-consuming role (`tasks/main.yml`):
+
+```yaml
+- name: Resolve identity facts when missing
+  ansible.builtin.include_role:
+    name: odem.os.user
+    tasks_from: identity.yml
+    public: true
+  when: user_resolved is not defined or user_default_repo_dir_mps is not defined
+```
+
+- `tasks_from: identity.yml` — resolve facts only; no account management.
+- `public: true` — exposes `odem.os.user`'s `user_default_*` ecosystem globals to the play.
+- The `when` clause needs BOTH conditions: `user_resolved` facts persist across the plays of one run, role defaults do not — the second clause forces a re-include in every play.
+- Roles that consume no identity data (`odem.os.{settings,packages,tools}`, most `odem.development` roles) carry neither guard nor meta dependency.
+- **Argument-spec validation renders role defaults and spec defaults BEFORE any role task** — it cannot rely on the guard. Two rules follow: `argument_specs.yml` `default:` fields are literals (never `{{ user_* }}` templates), and every consuming role whose `defaults/main.yml` templates a `user_default_*` global mirrors the canonical value in its own defaults file (inventory overrides still beat role defaults). Verify spec health with one `ansible-playbook --check --tags always` sweep over all roles — it runs only the `always`-tagged validation tasks.
 
 ### Shared group folders
 
@@ -430,6 +447,8 @@ Every collection is built locally and installed into `../.ansible/ansible_collec
 
 The following cleanup passes have been committed to the local repos:
 
+- **`odem.os.user` meta dependencies replaced by the lazy identity guard (2026-11-26)** — all 36 `role: odem.os.user` meta deps across the 7 collections were removed. The 25 identity-consuming roles (terminal ×10, desktop ×7, services ×4, alloy `base`+`install`, `development.pi`, `hardening.lockdown`, `os.backup`) now resolve `user_resolved`/`user_present`/`user_absent`/`user_group_names` plus the `user_default_*` globals lazily via a first-task `include_role { name: odem.os.user, tasks_from: identity.yml, public: true }` guard (see [Identity resolution protocol](#identity-resolution-protocol)). Account management (groups/users/ssh/sudo/folders) now runs ONLY where `odem.os.user` is an explicit role — `playbooks/bootstrap.yml`; identity-free roles (`os.{settings,packages,tools}`, most `development` roles) carry neither guard nor dep. Consequence: a fresh host MUST be bootstrapped before any per-user role play (the guard does not create accounts), and the platform assert likewise only runs where the user role applies.
+- **Validation-render follow-up (same day)** — argument-spec validation renders role `defaults/main.yml` AND spec defaults BEFORE any role task, so it cannot rely on the guard: the first live `desktop_full` run died on qtile's spec default. Fixed by (a) literal `default:` values in all 8 `argument_specs.yml` files that templated `user_default_*` (alloy sms; desktop kanata/qtile/rofi/thunar/trayhub; terminal fonts/skeletons), and (b) mirroring the canonical `user_default_repo_dir(_mps)` value in the 18 consuming roles whose `defaults/main.yml` template it. Verified with the `--tags always` sweep: 55/55 roles validate.
 - **Fedora (RedHat family) support added to `odem-base`, `odem-os`, `odem-users`, `odem-terminal`** — the Debian-13-only assert in `odem.base.identity` was replaced by a family-based gate (`os_family in ['Debian', 'RedHat']`). Every Debian-specific task is now gated per family; RedHat paths install via the `dnf` CLI (see [Platform support conventions](#platform-support-conventions)). Affected roles: `package_manager`, `system_settings`, `system_tools` (os); `users` root block, `sudo` wheel mapping (users); `bash`, `fonts`, `kitty`, `nvim`, `python`, `rust`, `tmux`, `vim` (terminal). Fedora 45 added to every `meta/main.yml` platform list.
 - **`odem.users.sudo` — shared macros file** — the sudo macros are no longer expanded inline into each per-user sudoers file. A shared macros file (`sudo_macros_file`, default `/etc/sudoers.d/00_macros`) renders every `sudo_macros` entry as a `Cmnd_Alias`; each per-user file references the aliases by name (`alice ALL=(ALL) ADMIN_DEFAULT, ADMIN_DEBUG`). Both files are validated with `validate: visudo -cf %s` (visudo accepts cross-file alias references). `community.general` dependency dropped from `odem-users` (sudo was its only consumer) — rules are plain `ansible.builtin.copy` with mode `0440`.
 - **`odem.users.users` root block per-family** — root's shell/gecos edits use `chsh`/`chfn` on Debian (where usermod refuses root) and `usermod -s`/`-c` on RedHat (Fedora 45 removed `chfn`/`chsh` from shadow-utils). `chpasswd -e` and `chage -E` work on both.
