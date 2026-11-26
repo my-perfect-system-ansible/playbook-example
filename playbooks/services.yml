@@ -1,0 +1,29 @@
+---
+# - import_playbook: terminal_full.yml
+
+- name: Deploy services
+  hosts: all
+  become: true
+
+  vars:
+    lockdown_enable_execute: false
+    lockdown_enable_xwindow_server: true
+
+  roles:
+    # - odem.terminal.bash
+    # - odem.services.monitoring
+    # - odem.alloy.install
+    # - odem.alloy.host
+    # - odem.alloy.docker
+    # - odem.alloy.cadvisor
+    # - odem.alloy.blackbox
+    # - odem.alloy.sms
+    - odem.services.docker
+    # - odem.services.openvpn
+    - odem.services.openwebui
+    # - odem.hardening.firewall
+    # - odem.hardening.apparmor
+    # - odem.hardening.auditd
+    # - odem.hardening.aide
+    # - odem.hardening.lockdown
+    # - odem.hardening.wazuh

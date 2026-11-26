@@ -1,0 +1,14 @@
+---
+# - import_playbook: terminal_minimal.yml
+
+- name: Configure desktop (minimal)
+  hosts: all
+  become: true
+
+  roles:
+    - odem.desktop.qtile
+    - odem.desktop.rofi
+    - odem.desktop.thunar
+    - odem.desktop.essentials
+    - odem.desktop.lightdm
+    - odem.desktop.browser

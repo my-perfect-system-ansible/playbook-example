@@ -1,0 +1,267 @@
+# ---------------------------------------------------------------------------
+# User model — merged here from the former odem.users collection (odem_users.yml).
+# System tweaks — merged here from the former odem.optimize collection
+# (odem_optimize.yml); variables renamed to the tweaks_* prefix.
+# ---------------------------------------------------------------------------
+# Former odem.optimize role defaults — now the odem.os.tweaks role
+# ---------------------------------------------------------------------------
+# tweaks_enable_zram: true
+# tweaks_enable_ramdisks: true
+# tweaks_enable_kmscon: true
+#
+# zram
+# tweaks_zram_packages:
+#   - zram-tools
+# tweaks_zram_percentage: 10
+# tweaks_zram_config_path: /etc/default/zramswap
+# tweaks_zram_service: zramswap
+# tweaks_zram_algo: zstd
+#
+# ramdisks
+# tweaks_ramdisks_mount: /var/log
+# tweaks_ramdisks_opts: "mode=1777,nosuid,nodev"
+# tweaks_ramdisks_fstab_marker: "# {mark} ANSIBLE MANAGED: tmpfs {{ tweaks_ramdisks_mount }}"
+# tweaks_ramdisks_backup_path: /tmp/var-log-backup
+# tweaks_ramdisks_backup_marker: "{{ tweaks_ramdisks_backup_path }}/.backup_done"
+#
+# kmscon
+# tweaks_kmscon_packages:
+#   - kmscon
+#   - libtsm4
+# tweaks_kmscon_default_release: trixie-backports
+# tweaks_kmscon_config_dir: /etc/kmscon
+# tweaks_kmscon_conf_src: "{{ role_path }}/files/etc/kmscon/kmscon.conf"
+# tweaks_kmscon_conf_dst: "{{ tweaks_kmscon_config_dir }}/kmscon.conf"
+#
+# ---------------------------------------------------------------------------
+# Former odem.base.identity defaults — now owned by the odem.os collection
+# ---------------------------------------------------------------------------
+# user_default_repo_dir: /srv/repo
+# user_default_repo_dir_mps: /srv/repo/github/my-perfect-system/mps
+# user_default_file_mode: "0600"
+# user_default_dir_mode: "0700"
+# user_default_script_mode: "0700"
+# user_default_owner: root
+# user_default_group: root
+# user_default_suid_mode: "2770"
+# user_enable_group_folders: true
+# user_group_folders: []
+# user_group_folders_mode: "2770"
+
+# user_enable_group_extraction: true
+# user_groups_list: []
+
+# user_sudo_macros:
+#   ADMIN_DEFAULT:
+#     - "/usr/bin/apt"
+#     - "/usr/bin/systemctl"
+#     - "/usr/bin/journalctl *"
+#     - "/usr/bin/df *"
+#     - "/usr/bin/du *"
+#     - "/usr/sbin/lsblk *"
+#     - "/usr/bin/netstat *"
+#     - "/usr/bin/which *"
+#     - "/usr/bin/cat /etc/hosts"
+#     - "/usr/bin/cat /etc/resolv.conf"
+#     - "/usr/bin/cat /etc/network/interfaces"
+#     - "/usr/sbin/route -n"
+#     - "/usr/sbin/iptables -L *"
+#     - "/usr/sbin/brctl show *"
+#     - "/usr/sbin/poweroff"
+#     - "/usr/sbin/reboot"
+#   ADMIN_DEBUG:
+#     - "/bin/sh *"
+#     - "/bin/bash *"
+#     - "/usr/bin/apt *"
+#     - "/usr/lib/apt/methods/http *"
+#     - "/usr/bin/rsync *"
+#     - "/usr/bin/cp *"
+#     - "/usr/bin/rm *"
+#     - "/usr/bin/mv *"
+#     - "/usr/bin/ln *"
+#     - "/usr/bin/mount *"
+#     - "/usr/bin/umount *"
+#     - "/usr/bin/tee *"
+#     - "/usr/bin/batcat *"
+#     - "/usr/bin/cat *"
+#     - "/usr/bin/vi *"
+#     - "/usr/bin/vim *"
+#     - "/usr/bin/nano *"
+#     - "/usr/sbin/route *"
+#     - "/usr/sbin/iptables *"
+#     - "/usr/sbin/brctl *"
+#   ADMIN_MINIMAL:
+#     - "/usr/bin/su -"
+
+# user_enable_print_passwords_plaintext: false
+
+
+
+# ---------------------------------------------------------------------------
+# Per-user field defaults — referenced inside catalog entries below
+# ---------------------------------------------------------------------------
+user_shell: /bin/bash
+user_create_home: true
+user_system: false
+user_expires: -1
+user_groups: []
+user_default_admin_group: "admin"
+user_default_config_group: "config"
+user_admin_groups: ["{{ user_default_admin_group }}", "{{ user_default_config_group }}"]
+user_append_groups: true
+user_password: "changeme"
+
+# ---------------------------------------------------------------------------
+# user_roles_default — global default per-user role set
+# ---------------------------------------------------------------------------
+root_roles_default:
+  terminal_bash: true
+  terminal_vim: true
+  terminal_tmux: true
+  terminal_scripts: true
+  desktop_essentials: true
+
+user_roles_default:
+  terminal_bash: true
+  terminal_vim: true
+  terminal_nvim: true
+  terminal_tmux: true
+  terminal_kitty: true
+  terminal_python: true
+  terminal_rust: true
+  terminal_scripts: true
+  desktop_essentials: true
+  desktop_lightdm: true
+  desktop_rofi: true
+  desktop_qtile: true
+  desktop_thunar: true
+  desktop_kanata: true
+  backup_backup: true
+  development_opencode: true
+  development_lmstudio: true
+  development_espidf: true
+  development_dotnet: true
+  development_java: true
+  development_latex: true
+  development_unity: true
+
+user_roles_minimal:
+  terminal_bash: true
+  terminal_tmux: true
+  terminal_vim: true
+  terminal_python: true
+  terminal_rust: true
+  terminal_nvim: true
+  terminal_scripts: true
+
+# ---------------------------------------------------------------------------
+# user_catalog — identity catalog (empty by default, override per host)
+# ---------------------------------------------------------------------------
+# Example shape:
+#
+user_catalog:
+  default_root:
+    name: "root"
+    comment: "root"
+    password: "rootpass"
+    home: /root
+    group: "root"
+    groups: "{{ user_groups }}"
+    system: true
+    shell: "{{ user_shell }}"
+    create_home: "{{ user_create_home }}"
+    expires: "{{ user_expires }}"
+    append_groups: "{{ user_append_groups }}"
+    user_roles: "{{ root_roles_default }}"
+
+  deploy:
+    name: "deploy"
+    comment: "deploy"
+    password: "deploypass"
+    group: "deploy"
+    groups: "{{ user_admin_groups }}"
+    home: /home/deploy
+    system: "{{ user_system }}"
+    shell: "{{ user_shell }}"
+    create_home: "{{ user_create_home }}"
+    expires: "{{ user_expires }}"
+    append_groups: "{{ user_append_groups }}"
+    sudo:
+      nopasswd: true
+      group: true
+    user_roles: "{{ user_roles_minimal }}"
+
+  jb:
+    name: "jb"
+    comment: "jb"
+    password: "jbpass"
+    group: "jb"
+    groups: "{{ user_admin_groups }}"
+    home: /home/jb
+    system: "{{ user_system }}"
+    shell: "{{ user_shell }}"
+    create_home: "{{ user_create_home }}"
+    expires: "{{ user_expires }}"
+    append_groups: "{{ user_append_groups }}"
+    sudo:
+      nopasswd: false
+      group: true
+      macros:
+        - ADMIN_DEFAULT
+        - ADMIN_DEBUG
+    user_roles: "{{ user_roles_default }}"
+
+# ---------------------------------------------------------------------------
+# user_list — per-host/per-group assignment list (empty by default)
+# ---------------------------------------------------------------------------
+# Example shape:
+#
+user_list:
+  - name: default_root
+    state: present
+  - name: jb
+    state: present
+  - name: deploy
+    state: absent
+  - name: old_user
+    state: absent
+
+# ---------------------------------------------------------------------------
+# odem.os role defaults (commented)
+# ---------------------------------------------------------------------------
+# packages_enable_auto_upgrades: true
+# packages_enable_repos_main: true
+# packages_enable_repos_updates: true
+# packages_enable_repos_backports: true
+# packages_enable_repos_security: true
+# packages_enable_components_contrib: true
+# packages_enable_components_non_free: true
+# packages_enable_components_non_free_firmware: true
+# packages_enable_deb_src: true
+# packages_upgrade: dist
+
+# settings_timezone: "Europe/Berlin"
+# settings_hosts_entries: []
+#   # - ip: 10.23.43.10
+#   #   names: [blackbeard]
+#   #   fqdn: blackbeard.tortuga.lokal
+# settings_install_packages: []
+# settings_remove_packages: []
+# settings_dns_server: ""
+# settings_locale_name: "en_US.UTF-8"
+# settings_keyboard_model: "pc105"
+# settings_keyboard_layout: "de"
+# settings_keyboard_variant: "nodeadkeys"
+# settings_keyboard_options: "compose:menu"
+# settings_console_charset: "UTF-8"
+# settings_console_codeset: "Lat15"
+# settings_console_fontface: "Terminus"
+# settings_console_fontsize: "8x16"
+
+# tools_enable_archives: true
+# tools_enable_build: true
+# tools_enable_fm: true
+# tools_enable_core: true
+# tools_enable_transfer: true
+# tools_enable_net: true
+# tools_enable_stats: true

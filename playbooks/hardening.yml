@@ -1,0 +1,17 @@
+---
+# - import_playbook: terminal_full.yml
+
+- name: Deploy services
+  hosts: all
+  become: true
+
+  vars:
+    lockdown_enable_execute: false
+    lockdown_enable_xwindow_server: true
+  roles:
+    - odem.hardening.firewall
+    # - odem.hardening.apparmor
+    # - odem.hardening.auditd
+    # - odem.hardening.aide
+    # - odem.hardening.fail2ban
+    # - odem.hardening.lockdown

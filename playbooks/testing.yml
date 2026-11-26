@@ -1,0 +1,31 @@
+---
+- name: Testing hosts
+  hosts: all
+  become: true
+
+  vars:
+    lockdown_enable_execute: false
+
+  roles:
+    # - odem.services.docker
+    # - odem.services.monitoring
+    # - odem.services.openwebui
+    # - odem.backup.backup
+    
+    # odem.os tweaks (former odem.optimize)
+    # - odem.os.tweaks
+    # odem.hardening
+    - odem.hardening.firewall
+    - odem.hardening.apparmor
+    - odem.hardening.auditd
+    - odem.hardening.aide
+    - odem.hardening.lockdown
+    
+    # pi agent
+    # - odem.development.pi
+    # - odem.alloy.install
+    # - odem.alloy.host
+    # - odem.alloy.docker
+    # - odem.alloy.cadvisor
+    # - odem.alloy.blackbox
+    # - odem.alloy.sms

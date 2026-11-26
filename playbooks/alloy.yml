@@ -1,0 +1,15 @@
+---
+# - import_playbook: terminal_full.yml
+
+- name: Deploy services
+  hosts: all
+  become: true
+  roles:
+    - odem.alloy.install
+    - odem.alloy.monitoring
+    - odem.alloy.fail2ban
+    - odem.alloy.host
+    - odem.alloy.docker
+    - odem.alloy.blackbox
+    - odem.alloy.proxy
+    - odem.alloy.sms

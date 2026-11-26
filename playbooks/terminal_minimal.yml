@@ -1,0 +1,11 @@
+---
+- import_playbook: bootstrap.yml
+
+- name: Configure terminal (minimal)
+  hosts: all
+  become: true
+
+  roles:
+    - odem.terminal.bash
+    - odem.terminal.vim
+    - odem.terminal.tmux

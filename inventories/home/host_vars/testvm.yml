@@ -1,0 +1,14 @@
+---
+
+#  alloy
+base_custom_labels: "mps_alloy_os_name=debian13,mps_alloy_systype=hw,mps_alloy_physloc=de"
+base_remote_prometheus_url: "http://blackbeard.tortuga.lokal:9090/api/v1/write"
+base_remote_loki_url: "http://blackbeard.tortuga.lokal:3100/loki/api/v1/push"
+
+lockdown_enable_execute: true
+lockdown_enable_sudoers_user: true
+lockdown_enable_sudoers_admin_group: true
+lockdown_enable_aide_async: true
+lockdown_enable_xwindow_server: true
+lockdown_enable_firewall_package: true
+lockdown_enable_sugroup: true

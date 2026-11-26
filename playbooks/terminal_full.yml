@@ -1,0 +1,18 @@
+---
+- import_playbook: bootstrap.yml
+
+- name: Configure terminal (full)
+  hosts: all
+  become: true
+
+  roles:
+    - odem.terminal.bash
+    - odem.terminal.vim
+    - odem.terminal.nvim
+    - odem.terminal.tmux
+    - odem.terminal.kitty
+    - odem.terminal.fonts
+    - odem.terminal.python
+    - odem.terminal.rust
+    - odem.terminal.scripts
+    - odem.terminal.skeletons

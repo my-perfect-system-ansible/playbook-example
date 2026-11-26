@@ -1,0 +1,136 @@
+# base_user: alloy
+# base_config_dir: /etc/alloy
+# base_env_file: /etc/default/alloy
+# base_web_ui_port: 12345
+# base_metrics_port: 9400
+# base_custom_labels: "os=debian13,systype=hw,physloc=de"
+# base_remote_prometheus_url: "http://10.10.100.180:9090/api/v1/write"
+# base_remote_loki_url: "http://10.10.100.180:3100/loki/api/v1/push"
+
+# install_enable_change_user: false
+# install_service_user: root
+# install_enable_livedebugging: true
+# install_enable_purge_config: true
+# install_enable_self_collector: true
+# install_enable_web_ui: true
+
+# host_enable_logs: true
+# host_enable_metrics: true
+
+# alloy_syslog_paths:
+#   - /var/log/syslog
+#   - /var/log/auth.log
+#   - /var/log/cron.log
+#   - /var/log/kern.log
+#   - /var/log/unattended-upgrades
+#   - /var/log/user.log
+#   - /var/log/wtmp
+#   - /var/log/lastlog
+
+# alloy_host_collectors:
+#   - arp
+#   - bcache
+#   - bonding
+#   - boottime
+#   - btrfs
+#   - buddyinfo
+#   - cpu
+#   - diskstats
+#   - dmi
+#   - drm
+#   - edac
+#   - entropy
+#   - ethtool
+#   - filefd
+#   - filesystem
+#   - hwmon
+#   - interrupts
+#   - ksmd
+#   - lnstat
+#   - loadavg
+#   - logind
+#   - meminfo
+#   - meminfo_numa
+#   - mountstats
+#   - netclass
+#   - netdev
+#   - netstat
+#   - network_route
+#   - os
+#   - perf
+#   - powersupplyclass
+#   - pressure
+#   - processes
+#   - qdisc
+#   - rapl
+#   - schedstat
+#   - sockstat
+#   - softirqs
+#   - softnet
+#   - stat
+#   - sysctl
+#   - systemd
+#   - tcpstat
+#   - textfile
+#   - thermal_zone
+#   - time
+#   - timex
+#   - udp_queues
+#   - uname
+#   - vmstat
+#   - wifi
+#   - xfs
+#   - zfs
+#   - zoneinfo
+
+# docker_enable_logs: true
+# docker_enable_metrics: true
+# docker_enable_cadvisor_service: true
+# docker_cadvisor_image: gcr.io/cadvisor/cadvisor:v0.51.0
+# docker_cadvisor_compose_dir: /etc/alloy/cadvisor
+# docker_cadvisor_port: "8080"
+# docker_cadvisor_scrape_interval: "60s"
+
+# blackbox_enable_exporter: true
+# blackbox_enable_scrape: true
+# blackbox_exporter_port: 9115
+# blackbox_config_file: /etc/prometheus/blackbox.yml
+# blackbox_exporter_extra_args: ""
+# blackbox_modules:
+#   http_2xx:
+#     prober: http
+#     timeout: 5s
+#     http:
+#       preferred_ip_protocol: ip4
+#       method: GET
+#       fail_if_not_ssl: true
+# blackbox_probe_targets:
+#   - name: justaname
+#     target: https://www.google.de
+#     module: http_2xx
+
+# sms_enable_exporter: true
+# sms_enable_scrape: true
+# sms_repo_url: https://github.com/simple-metrics-server/sms-webapp.git
+# sms_repo_version: main
+# sms_repo_dest: "{{ user_default_repo_dir }}/github/simple-metrics-server/sms-webapp"
+# sms_bind: 127.0.0.1
+# sms_port: 9555
+# sms_scrape_interval: 10s
+# sms_app_scrape_interval: 60
+# sms_service_name: sms-webapp
+# sms_env_file: /etc/default/sms-webapp
+
+# monitoring_enable_grafana: true
+# monitoring_enable_loki: true
+# monitoring_enable_prometheus: true
+# monitoring_grafana_url: http://localhost:3000/metrics
+# monitoring_loki_url: http://localhost:3100/metrics
+# monitoring_prometheus_url: http://localhost:9090/metrics
+# monitoring_grafana_scrape_interval: 30s
+# monitoring_loki_scrape_interval: 30s
+# monitoring_prometheus_scrape_interval: 30s
+
+# fail2ban_enable_logs: true
+# fail2ban_log_paths:
+#   - /var/log/fail2ban.log

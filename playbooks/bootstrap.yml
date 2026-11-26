@@ -1,0 +1,10 @@
+---
+- name: Bootstrap hosts
+  hosts: all
+  become: true
+
+  roles:
+    - odem.os.user
+    - odem.os.settings
+    - odem.os.packages
+    - odem.os.tools

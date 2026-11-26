@@ -1,0 +1,141 @@
+---
+ansible_user: deploy
+ansible_host: srvtest
+install_enable_web_ui: false
+settings_hostname: "justaname"
+settings_hosts_entries:
+  - ip: 194.163.136.152
+    names:
+      - justaname 
+    fqdn: justaname.de
+  - ip: 10.23.43.10
+    names:
+      - blackbeard
+    fqdn: blackbeard.tortuga.lokal
+  - ip: 10.23.43.20
+    names:
+      - barbossa
+    fqdn: barbossa.tortuga.lokal
+  - ip: 10.23.43.30
+    names:
+      - sparrow
+    fqdn: sparrow.tortuga.lokal
+  - ip: 10.23.43.40
+    names:
+      - kidd
+    fqdn: kidd.tortuga.lokal
+
+
+settings_install_packages: [git, vim, make, just]
+settings_remove_packages: [systemd-resolved, exim4-base]
+settings_dns_server: "8.8.8.8"
+
+user_group_folders:
+  - path: /srv
+    group: "{{ user_default_admin_group }}"
+    mode: "{{ user_default_suid_mode }}"
+
+# alloy install
+install_enable_change_user: true
+
+# docker
+docker_data_root: /srv/docker
+
+# firewall
+firewall_tcp_ports:
+  - "22"
+  - "22201"
+  - "23001"
+  - "443"
+  - "9443"
+  - "55000"
+  - "80"
+  - "12345"
+  - "3000"
+  - "3100"
+  - "9090"
+  - "1514"
+  - "1515"
+  - "1517"
+
+firewall_udp_ports:
+  - "1194"
+  - "1195"
+
+# openvpn
+openvpn_enable_main_client: true
+openvpn_server_address: justaname.de
+openvpn_network_mode: tap
+openvpn_network_port: 1194
+openvpn_network_name: tortuga
+openvpn_network_subnet: 10.23.43.0/24
+openvpn_compose_file: docker-compose.tortuga.yml
+openvpn_client_main: blackbeard
+openvpn_clients: 
+  - name: blackbeard
+    ip: 10.23.43.10
+  - name: barbossa
+    ip: 10.23.43.20
+  - name: sparrow
+    ip: 10.23.43.30
+  - name: kidd
+    ip: 10.23.43.40
+
+openvpn_easyrsa_req_country: "US"
+openvpn_easyrsa_req_province: "Foo"
+openvpn_easyrsa_req_city: "Bar"
+openvpn_easyrsa_req_org: "BAZ"
+openvpn_easyrsa_req_email: "admin@example.com"
+openvpn_easyrsa_req_ou: "TestLab"
+openvpn_easyrsa_key_size: 2048
+openvpn_easyrsa_algo: rsa
+openvpn_easyrsa_ca_expire: 3650
+openvpn_easyrsa_cert_expire: 3650
+
+# openwebui
+openwebui_webui_url: https://www.justaname.de
+openwebui_webui_port: 3001
+openwebui_cors_allow_origin: https://www.justaname.de
+openwebui_secret_key: your-secret-key-must-be-at-least-32-characters-long
+openwebui_ollama_base_url: http://ollama:11434
+openwebui_hf_token: ""
+openwebui_root_password: set-your-password-here
+openwebui_bridge_name_ai: "brAilab"
+openwebui_swag_url: www.justaname.de
+openwebui_swag_subdomains: 
+openwebui_swag_validation: http
+openwebui_swag_email: admin@justaname.de
+openwebui_swag_staging: true
+openwebui_localai_host: barbossa.tortuga.lokal
+openwebui_localai_ip: 10.23.43.20
+
+#  alloy
+base_custom_labels: "mps_alloy_org=tortuga,mps_alloy_os_name=debian13,mps_alloy_systype=hw,mps_alloy_physloc=de"
+base_remote_prometheus_url: "http://blackbeard.tortuga.lokal:9090/api/v1/write"
+base_remote_loki_url: "http://blackbeard.tortuga.lokal:3100/loki/api/v1/push"
+
+# monitoring
+monitoring_bind_ip: "10.23.43.10"
+monitoring_grafana_url: http://blackbeard.tortuga.lokal:3000/metrics
+monitoring_loki_url: http://blackbeard.tortuga.lokal:3100/metrics
+monitoring_prometheus_url: http://blackbeard.tortuga.lokal:9090/metrics
+
+# blackbox
+blackbox_probe_targets:
+  - name: openwebui
+    target: https://www.justaname.de
+    module: http_2xx
+
+# sms
+# OpenVPN config/status pairs (matched by position; config needs
+# status-version 3). Add more pairs for extra OpenVPN instances.
+sms_openvpn_config_paths:
+  - /srv/repo/github/my-perfect-system/mps-services-openvpn/networks/tortuga/server.conf
+  - /etc/openvpn/clients/blackbeard.ovpn
+sms_openvpn_status_paths:
+  - /srv/docker/volumes/mps-services-openvpn_server-log/_data/tortuga-status.log
+  - /var/log/openvpn-status.log
+
+# wazuh
+wazuh_agent_manager_host: blackbeard.tortuga.lokal
+

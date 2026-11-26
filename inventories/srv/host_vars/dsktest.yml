@@ -1,0 +1,77 @@
+---
+ansible_user: deploy
+ansible_host: hive
+
+# settings
+settings_install_packages: [git, vim, make, just]
+settings_remove_packages: [systemd-resolved, exim4-base]
+settings_dns_server: "10.23.42.1"
+settings_hostname: "hive"
+settings_hosts_entries:
+  - ip: 10.23.42.6
+    names:
+      - hive
+    fqdn: hive.lokal
+
+# group folders
+user_group_folders:
+  - path: /srv
+    group: "{{ user_default_admin_group }}"
+    mode: "{{ user_default_suid_mode }}"
+
+# alloy install
+install_enable_change_user: true
+install_enable_purge_config: false
+
+#  alloy
+base_custom_labels: "mps_alloy_org=tortuga,mps_alloy_os_name=debian13,mps_alloy_systype=hw,mps_alloy_physloc=de"
+base_remote_prometheus_url: "http://blackbeard.tortuga.lokal:9090/api/v1/write"
+base_remote_loki_url: "http://blackbeard.tortuga.lokal:3100/loki/api/v1/push"
+
+# monitoring
+# monitoring_bind_ip: "10.23.43.10"
+
+# blackbox
+blackbox_probe_targets:
+  - name: openwebui
+    target: https://www.justaname.de
+    module: http_2xx
+  - name: grafana
+    target: http://blackbeard.tortuga.lokal:3000
+    module: http_2xx_nossl
+  - name: loki
+    target: http://blackbeard.tortuga.lokal:3100/ready
+    module: http_2xx_nossl
+  - name: prometheus
+    target: http://blackbeard.tortuga.lokal:9090
+    module: http_2xx_nossl
+
+# proxy
+proxy_scrape_targets:
+  - name: openwrt
+    url: http://gatekeeper:9100/metrics
+    scrape_interval: 10s
+  - name: ollama
+    url: http://hive:25001/metrics
+    scrape_interval: 10s
+  - name: llamacpp
+    url: http://hive:23003/metrics
+    scrape_interval: 10s
+  - name: vllm
+    url: http://hive:23002/metrics
+    scrape_interval: 10s
+  - name: litellm
+    url: http://hive:4000/metrics
+    scrape_interval: 10s
+
+# sms
+# OpenVPN config/status pairs (matched by position; config needs
+# status-version 3). Add more pairs for extra OpenVPN instances.
+sms_openvpn_config_paths:
+  - /etc/openvpn/client/tortuga.conf
+sms_openvpn_status_paths:
+  - /var/log/openvpn-status.log
+
+# wazuh
+wazuh_agent_manager_host: blackbeard.tortuga.lokal
+
