@@ -5,7 +5,7 @@
 # GALAXY_API_TOKEN in the environment or from .env at this repo's root
 # (gitignored). Optional argument: a Galaxy server URL.
 set -uo pipefail
-source "$(dirname "${BASH_SOURCE[0]}")/git-repos.bash"
+source "$(dirname "${BASH_SOURCE[0]}")/git.bash"
 cd "$REPO_ROOT" || exit 1
 
 if [ -f ./.env ]; then

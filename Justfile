@@ -9,7 +9,7 @@
 #   run-playbook.bash / check-playbooks.bash    playbook runs + syntax checks
 #   install-collections.bash                   odem-* build + force-install
 #   vault.bash                                  vault lifecycle + password resolution
-#   git-{clone,status,pull,commit}.bash (+ git-repos.bash)   cross-repo git ops
+#   git.bash                                    cross-repo git ops (clone|status|pull|commit)
 #   publish.bash                                Galaxy publish per odem-* collection
 
 # List inventories and playbooks
@@ -53,26 +53,27 @@ check inventory='home':
 install-forced collections_path="../.ansible/ansible_collections":
     scripts/install-collections.bash "{{collections_path}}"
 
-# --- Cross-repo git + Galaxy publish (scripts/git-*.bash, publish.bash) ---
-# The scripts iterate every sibling repo (list + clone URLs in
-# scripts/git-repos.bash): odem-*/manage/playbook-example in the
-# my-perfect-system-ansible org, mps-* two levels up in my-perfect-system.
+# --- Cross-repo git + Galaxy publish (scripts/git.bash, publish.bash) ---
+# git.bash iterates every sibling repo (its REPOS list + clone URLs);
+# publish.bash sources it for the same list:
+# odem-*/manage/playbook-example in the my-perfect-system-ansible org,
+# mps-* two levels up in my-perfect-system.
 
 # Clone every missing sibling repo from GitHub (fresh-install helper)
 git-clone:
-    scripts/git-clone.bash
+    scripts/git.bash clone
 
 # Show git status + last commit of every sibling repo
 git-status:
-    scripts/git-status.bash
+    scripts/git.bash status
 
 # Fast-forward pull every sibling repo; skip dirty working trees
 git-pull:
-    scripts/git-pull.bash
+    scripts/git.bash pull
 
 # Add, commit (with MSG), and push every dirty sibling repo
 git-commit msg:
-    scripts/git-commit.bash "{{msg}}"
+    scripts/git.bash commit "{{msg}}"
 
 # Publish every odem-* collection to Ansible Galaxy — GALAXY_API_TOKEN
 # from the environment or .env at the repo root

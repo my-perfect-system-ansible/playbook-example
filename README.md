@@ -39,7 +39,7 @@ just run home bootstrap -i inventory_local.ini     # home: secondary ini
 | Path | Content |
 |---|---|
 | `playbooks/` | common playbooks — tier chains, `services`, `alloy`, `hardening`, `wazuh`, `all`, `testing` — all `hosts: all` |
-| `scripts/` | the Justfile's logic — `run-playbook.bash`, `check-playbooks.bash`, `install-collections.bash`, `git-{clone,status,pull,commit}.bash` (+ `git-repos.bash`), `publish.bash`, `vault.bash` (recipes are thin wrappers) |
+| `scripts/` | the Justfile's logic — `run-playbook.bash`, `check-playbooks.bash`, `install-collections.bash`, `git.bash` (`clone|status|pull|commit`), `publish.bash`, `vault.bash` (recipes are thin wrappers) |
 | `inventories/<name>/ansible.cfg` | `collections_path` + connection settings (`inventory = ./inventory.ini`) |
 | `inventories/<name>/inventory.ini` | hosts + groups of that inventory |
 | `inventories/home/inventory_local.ini` | in-place apply variant (same host as the ssh entry, kept separate to avoid var conflicts) |

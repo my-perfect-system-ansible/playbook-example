@@ -15,9 +15,8 @@ playbook-example/
 │   ├── run-playbook.bash      # cd inventory + vault pw resolution + ansible-playbook
 │   ├── check-playbooks.bash   # --syntax-check every playbook
 │   ├── install-collections.bash # odem-* build + force-install (install-forced)
-│   ├── git-repos.bash         # shared sibling-repo list + clone URLs (sourced by git-* and publish)
-│   ├── git-{clone,status,pull,commit}.bash  # cross-repo git ops (moved from manage/)
-│   ├── publish.bash           # ansible-galaxy collection publish per odem-* (moved from manage/)
+│   ├── git.bash               # cross-repo git ops clone|status|pull|commit + shared repo list (moved from manage/)
+│   ├── publish.bash           # ansible-galaxy collection publish per odem-* (moved from manage/; sources git.bash)
 │   └── vault.bash             # vault lifecycle; also the shared pw-resolution lib (sourced by run-playbook.bash)
 ├── playbooks/                  # COMMON playbooks — hosts: all
 │   ├── bootstrap.yml           #   odem.os.user + settings + packages + tools
@@ -76,10 +75,11 @@ playbook-example/
   `run-playbook.bash` (run), `check-playbooks.bash` (check),
   `install-collections.bash` (install-forced), `vault.bash` (the
   `vault-*` targets) and — moved from `manage/` (2026-11-26) —
-  `git-{clone,status,pull,commit}.bash` + `publish.bash`. Two shared
-  libraries sourced under their `BASH_SOURCE` main guards:
-  `vault.bash` (`resolve_vault_password` sets the `VA` array) and
-  `git-repos.bash` (`REPOS` list + `repo_url`).
+  `git.bash` (the `git-*` targets, subcommands
+  `clone|status|pull|commit`) + `publish.bash`. Two shared libraries
+  sourced under their `BASH_SOURCE` main guards: `vault.bash`
+  (`resolve_vault_password` sets the `VA` array) and `git.bash`
+  (`REPOS` list + `repo_url` — sourced by `publish.bash`).
 
 - `just <playbook> [inventory] [args…]` — one target per playbook,
   `inventory` defaults to `home`.
@@ -112,8 +112,8 @@ playbook-example/
   stale `./inventory_vm.ini`).
 - `install-forced` moved here from `manage/` (2026-11-26) — the playbook repo
   owns the collection build + install step.
-- The cross-repo git targets (`git-clone` / `git-status` / `git-pull` /
-  `git-commit`) and `publish` moved here from `manage/` (2026-11-26);
+- The cross-repo git targets and `publish` moved here from `manage/`
+  (2026-11-26), the four git actions merged into the one `scripts/git.bash`;
   `manage/` keeps `lint` / `molecule` / `list-roles` / `list-collections`
   over `COLLECTIONS` (the eight `odem-*` repos).
 - `run-example` retired from `manage/` — covered here by `run` + the
