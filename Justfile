@@ -54,10 +54,11 @@ install-forced collections_path="../.ansible/ansible_collections":
 # --- Vault (scripts/vault.bash) ------------------------------------------------
 # Secrets live encrypted at inventories/<name>/group_vars/all/vault.yml
 # (auto-loaded for every host; the encrypted file is committed). Password
-# source: file at ~/.ansible/vault-pass-<inventory> (mode 0600, written by
-# vault-pass-create) → used automatically; VAULT_ASK=1 → prompt; neither →
-# ansible-vault prompts itself. Extra args pass through to ansible-vault;
-# encrypt/decrypt take the file path relative to inventories/<name>/.
+# source: file at inventories/<name>/vault-pass (mode 0600, gitignored,
+# written by vault-pass-create) → used automatically; VAULT_ASK=1 → prompt;
+# neither → ansible-vault prompts itself. Extra args pass through to
+# ansible-vault; encrypt/decrypt take the file path relative to
+# inventories/<name>/.
 
 # Create the vault password file at the known location (prompts twice)
 vault-pass-create inventory='home':

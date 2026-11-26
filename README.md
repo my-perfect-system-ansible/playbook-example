@@ -14,7 +14,7 @@ just bootstrap srv --limit srv     # … limited to the `srv` group
 just run srv all --limit local     # generic form: run <inv> <playbook> [args…]
 just run home bootstrap -K         # extra args pass through to ansible-playbook
 just install-forced                # build + install the sibling odem-* collections
-just vault-pass-create home         # vault password file → ~/.ansible/vault-pass-home
+just vault-pass-create home         # vault password file → inventories/home/vault-pass
 just vault-create home              # encrypted inventories/home/group_vars/all/vault.yml
 just vault-edit home                # edit it ($EDITOR); vault-view prints it
 just check srv                     # syntax-check every playbook
@@ -40,6 +40,7 @@ just run home bootstrap -i inventory_local.ini     # home: secondary ini
 | `inventories/<name>/group_vars/all/` | `odem_<collection>.yml` — commented-out dumps of the role defaults; the override surface. `odem_all.yml` holds the active cross-collection vars |
 | `inventories/<name>/host_vars/` | per-host values (`ansible_host`, role tunables) |
 | `inventories/<name>/group_vars/all/vault.yml` | encrypted secrets — auto-loaded for every host (managed via the `vault-*` targets) |
+| `inventories/<name>/vault-pass` | vault password file (mode 0600, **gitignored** — never commit it) |
 
 ## Add an inventory
 
@@ -56,8 +57,8 @@ $EDITOR <name>/host_vars/*.yml   # per-host values
 
 Secrets live encrypted in `inventories/<name>/group_vars/all/vault.yml`
 (auto-loaded for every host of that inventory; the encrypted file is
-committed). The vault password file sits outside the repo at
-`~/.ansible/vault-pass-<inventory>` (mode 0600):
+committed). The vault password file lives inside its inventory at
+`inventories/<name>/vault-pass` (mode 0600, **gitignored** via `.gitignore`):
 
 ```bash
 just vault-pass-create home     # password file (prompts twice)

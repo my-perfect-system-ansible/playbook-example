@@ -3,8 +3,9 @@
 #
 # Secrets live encrypted at inventories/<inventory>/group_vars/all/vault.yml
 # (auto-loaded for every host of that inventory — the encrypted file is
-# committed). The vault password file lives OUTSIDE the repo at
-# ~/.ansible/vault-pass-<inventory> (mode 0600; `pass-create` writes it).
+# committed). The vault password file lives INSIDE its inventory at
+# inventories/<inventory>/vault-pass (mode 0600; `pass-create` writes it;
+# gitignored — see .gitignore).
 #
 # Password source resolution (the VA array; shared with run-playbook.bash
 # and check-playbooks.bash, which source this file):
@@ -20,7 +21,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 vault_password_file() {
-    printf '%s\n' "$HOME/.ansible/vault-pass-$1"
+    printf '%s\n' "$REPO_ROOT/inventories/$1/vault-pass"
 }
 
 # Sets the global VA array to the ansible vault-password arguments.
