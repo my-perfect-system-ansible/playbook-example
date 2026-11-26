@@ -7,6 +7,13 @@
 #
 # `just install-forced` builds + force-installs the sibling odem-* collections
 # into ../.ansible/ansible_collections — the path each ansible.cfg reads.
+#
+# Secrets live encrypted in inventories/<name>/group_vars/all/vault.yml
+# (auto-loaded for every host of that inventory). The vault password file is
+# expected OUTSIDE the repo at ~/.ansible/vault-pass-<inventory> (created by
+# `vault-pass-create`); without it — or with VAULT_ASK=1 — the password is
+# prompted instead. ansible.cfg deliberately sets NO vault_password_file:
+# a missing file there fails every ansible run eagerly.
 
 # List inventories and playbooks
 list:
@@ -40,15 +47,24 @@ run inventory playbook *args:
     #!/usr/bin/env bash
     set -euo pipefail
     cd "inventories/{{inventory}}"
-    exec ansible-playbook "../../playbooks/{{playbook}}.yml" {{args}}
+    # vault password file (when present) decrypts encrypted vars automatically
+    pw="$HOME/.ansible/vault-pass-{{inventory}}"
+    va=()
+    if [ "${VAULT_ASK:-0}" = 1 ]; then va=(--ask-vault-pass)
+    elif [ -f "$pw" ]; then va=(--vault-password-file "$pw"); fi
+    exec ansible-playbook "${va[@]}" "../../playbooks/{{playbook}}.yml" {{args}}
 
 # Syntax-check every playbook against an inventory
 check inventory='home':
     #!/usr/bin/env bash
     set -euo pipefail
     cd "inventories/{{inventory}}"
+    pw="$HOME/.ansible/vault-pass-{{inventory}}"
+    va=()
+    if [ "${VAULT_ASK:-0}" = 1 ]; then va=(--ask-vault-pass)
+    elif [ -f "$pw" ]; then va=(--vault-password-file "$pw"); fi
     for pb in ../../playbooks/*.yml; do
-        ansible-playbook --syntax-check "$pb"
+        ansible-playbook "${va[@]}" --syntax-check "$pb"
         echo "OK  $(basename "$pb")"
     done
 
@@ -93,6 +109,156 @@ install-forced collections_path="../.ansible/ansible_collections":
         echo
     done
     echo "Summary: $built built, $installed installed, $failed failed"
+
+# --- Vault --------------------------------------------------------------------
+# Secrets are stored encrypted at inventories/<name>/group_vars/all/vault.yml
+# (auto-loaded for every host of that inventory — the encrypted file is
+# committed). The vault password file lives OUTSIDE the repo at
+# ~/.ansible/vault-pass-<inventory> (mode 0600; `vault-pass-create` writes it).
+# Password source resolution for every vault target:
+#   - password file present at the known location → used automatically
+#   - VAULT_ASK=1                                → prompt (--ask-vault-pass)
+#   - neither                                    → ansible-vault prompts itself
+# Playbook runs (`run`, `check`, per-playbook targets) add the password file
+# the same way. Extra args pass through to ansible-vault.
+
+# Create the vault password file at the known location (prompts twice)
+vault-pass-create inventory='home':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    pw="$HOME/.ansible/vault-pass-{{inventory}}"
+    mkdir -p "$(dirname "$pw")"
+    if [ -f "$pw" ]; then
+        echo "ERROR: $pw exists — rotate it with: just vault-rekey {{inventory}}"
+        exit 1
+    fi
+    read -rsp "New vault password for '{{inventory}}': " n1; echo
+    read -rsp "Confirm password: " n2; echo
+    [ "$n1" = "$n2" ] || { echo "ERROR: passwords differ"; exit 1; }
+    [ -n "$n1" ] || { echo "ERROR: empty password"; exit 1; }
+    umask 077
+    printf '%s\n' "$n1" > "$pw"
+    echo "==> wrote $pw"
+
+# Create the per-inventory vault file (fails if it exists — use vault-edit)
+vault-create inventory='home' *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "inventories/{{inventory}}"
+    if [ -f group_vars/all/vault.yml ]; then
+        echo "ERROR: group_vars/all/vault.yml exists (just vault-edit {{inventory}})"
+        exit 1
+    fi
+    mkdir -p group_vars/all
+    pw="$HOME/.ansible/vault-pass-{{inventory}}"
+    va=()
+    if [ "${VAULT_ASK:-0}" = 1 ]; then va=(--ask-vault-pass)
+    elif [ -f "$pw" ]; then va=(--vault-password-file "$pw"); fi
+    ansible-vault create "${va[@]}" {{args}} group_vars/all/vault.yml
+    if [ ! -f "$pw" ] && [ "${VAULT_ASK:-0}" != 1 ]; then
+        echo "NOTE: no password file at $pw — playbook runs will need --ask-vault-pass (or: just vault-pass-create {{inventory}})" >&2
+    fi
+
+# Edit the vault file in $EDITOR
+vault-edit inventory='home' *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "inventories/{{inventory}}"
+    pw="$HOME/.ansible/vault-pass-{{inventory}}"
+    va=()
+    if [ "${VAULT_ASK:-0}" = 1 ]; then va=(--ask-vault-pass)
+    elif [ -f "$pw" ]; then va=(--vault-password-file "$pw"); fi
+    exec ansible-vault edit "${va[@]}" {{args}} group_vars/all/vault.yml
+
+# Print the decrypted vault file (read-only)
+vault-view inventory='home' *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "inventories/{{inventory}}"
+    pw="$HOME/.ansible/vault-pass-{{inventory}}"
+    va=()
+    if [ "${VAULT_ASK:-0}" = 1 ]; then va=(--ask-vault-pass)
+    elif [ -f "$pw" ]; then va=(--vault-password-file "$pw"); fi
+    exec ansible-vault view "${va[@]}" {{args}} group_vars/all/vault.yml
+
+# Change the vault password (rekeys vault.yml and rewrites the password file)
+vault-rekey inventory='home' *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "inventories/{{inventory}}"
+    if [ ! -f group_vars/all/vault.yml ]; then
+        echo "ERROR: group_vars/all/vault.yml missing (just vault-create {{inventory}})"
+        exit 1
+    fi
+    pw="$HOME/.ansible/vault-pass-{{inventory}}"
+    va=()
+    if [ "${VAULT_ASK:-0}" = 1 ]; then va=(--ask-vault-pass)
+    elif [ -f "$pw" ]; then va=(--vault-password-file "$pw"); fi
+    read -rsp "New vault password for '{{inventory}}': " n1; echo
+    read -rsp "Confirm password: " n2; echo
+    [ "$n1" = "$n2" ] || { echo "ERROR: passwords differ"; exit 1; }
+    [ -n "$n1" ] || { echo "ERROR: empty password"; exit 1; }
+    # old password: password file (untouched) or prompt; the new password goes
+    # to a private temp file (ansible-vault cannot read /proc/fd paths) — the
+    # real password file is rewritten only after a successful rekey
+    new_tmp=$(mktemp)
+    printf '%s\n' "$n1" > "$new_tmp"
+    ansible-vault rekey "${va[@]}" {{args}} --new-vault-password-file "$new_tmp" group_vars/all/vault.yml
+    rm -f "$new_tmp"
+    umask 077
+    printf '%s\n' "$n1" > "$pw"
+    echo "==> updated $pw"
+
+# Encrypt a file of an inventory (path relative to inventories/<name>/)
+vault-encrypt inventory file *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "inventories/{{inventory}}"
+    pw="$HOME/.ansible/vault-pass-{{inventory}}"
+    va=()
+    if [ "${VAULT_ASK:-0}" = 1 ]; then va=(--ask-vault-pass)
+    elif [ -f "$pw" ]; then va=(--vault-password-file "$pw"); fi
+    exec ansible-vault encrypt "${va[@]}" {{args}} "{{file}}"
+
+# Decrypt an encrypted file of an inventory (path relative to inventories/<name>/)
+vault-decrypt inventory file *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "inventories/{{inventory}}"
+    pw="$HOME/.ansible/vault-pass-{{inventory}}"
+    va=()
+    if [ "${VAULT_ASK:-0}" = 1 ]; then va=(--ask-vault-pass)
+    elif [ -f "$pw" ]; then va=(--vault-password-file "$pw"); fi
+    exec ansible-vault decrypt "${va[@]}" {{args}} "{{file}}"
+
+# Show vault state: vault file + password file presence, decrypt check
+vault-status inventory='home':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "inventories/{{inventory}}"
+    pw="$HOME/.ansible/vault-pass-{{inventory}}"
+    va=()
+    if [ "${VAULT_ASK:-0}" = 1 ]; then va=(--ask-vault-pass)
+    elif [ -f "$pw" ]; then va=(--vault-password-file "$pw"); fi
+    if [ -f group_vars/all/vault.yml ]; then
+        echo "vault file    : present (group_vars/all/vault.yml)"
+        if [ ${#va[@]} -gt 0 ]; then
+            if ansible-vault view "${va[@]}" group_vars/all/vault.yml >/dev/null 2>&1; then
+                echo "decrypt check : OK"
+            else
+                echo "decrypt check : FAILED (wrong password source?)"
+            fi
+        else
+            echo "decrypt check : skipped (no password source)"
+        fi
+    else
+        echo "vault file    : missing (just vault-create {{inventory}})"
+    fi
+    if [ -f "$pw" ]; then
+        echo "password file : $pw"
+    else
+        echo "password file : missing (just vault-pass-create {{inventory}} or VAULT_ASK=1)"
+    fi
 
 # --- Per-playbook targets -----------------------------------------------------
 # Each takes the inventory as first parameter (default `home`, see `just

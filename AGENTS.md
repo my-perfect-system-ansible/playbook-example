@@ -51,6 +51,16 @@ playbook-example/
 - **ansible.cfg**: `collections_path = ./../../../.ansible:~/.ansible/collections`
   → picks up the `just install-forced` output from this repo.
 - No `galaxy.yml` — an overlay consuming the collections, not a collection.
+- **Vault**: secrets live encrypted at
+  `inventories/<name>/group_vars/all/vault.yml` (auto-loaded for every host;
+  the encrypted file is committed — nothing sensitive is in the repo). The
+  password file lives OUTSIDE the repo at
+  `~/.ansible/vault-pass-<inventory>` (mode 0600, written by
+  `just vault-pass-create <inv>`); `VAULT_ASK=1` prompts instead.
+  `ansible.cfg` deliberately sets NO `vault_password_file` — a missing file
+  there fails EVERY ansible run eagerly (verified ansible-core 2.16: startup
+  error even with no encrypted content, `--syntax-check` included). The
+  Justfile passes `--vault-password-file` conditionally instead.
 
 ## Justfile
 
@@ -60,6 +70,10 @@ playbook-example/
   through to ansible-playbook (`--limit <subset>` narrows to groups/hosts).
 - `just install-forced` — force build + force-install every sibling `odem-*`
   collection into `../.ansible/ansible_collections` (moved from `manage/`).
+- `just vault-{pass-create,create,edit,view,rekey,encrypt,decrypt,status}` —
+  manage `inventories/<inv>/group_vars/all/vault.yml`; password file at
+  `~/.ansible/vault-pass-<inv>`, `VAULT_ASK=1` to prompt; `encrypt`/`decrypt`
+  take a path relative to `inventories/<inv>/`.
 - `just check <inventory>` — syntax-check every playbook.
 - `just graph <inventory>` — inventory tree; `just list` — inventories +
   playbooks.
@@ -80,6 +94,10 @@ playbook-example/
   / `publish` / `list-roles` / `docker-*` / the cross-repo git targets.
 - `run-example` retired from `manage/` — covered here by `run` + the
   per-playbook targets (`--limit` / `-i` passthrough).
+- Vault infrastructure (2026-11-26): the `vault-*` targets + the
+  password-file convention; no variables moved into the vault yet.
+  `ansible.cfg` `vault_password_file` intentionally omitted (eager failure
+  on a missing file — the Justfile resolves the password source instead).
 
 ## See also
 - `manage/Justfile` — `lint`, `molecule`, `publish`, `list-roles`, `git-clone`, …
