@@ -136,7 +136,7 @@ user_roles_default:
   desktop_qtile: true
   desktop_thunar: true
   desktop_kanata: true
-  backup_backup: true
+  os_backup: true
   development_opencode: true
   development_lmstudio: true
   development_espidf: true
@@ -265,3 +265,11 @@ user_list:
 # tools_enable_transfer: true
 # tools_enable_net: true
 # tools_enable_stats: true
+
+# ---------------------------------------------------------------------------
+# Former odem.backup role defaults — merged into odem.os.backup
+# (odem_backup.yml); the odem-backup collection/repo was deleted.
+# ---------------------------------------------------------------------------
+backup_enable_persist_brave: false
+backup_source: "/data/disks/1tbssd/backup/backup_ansible/"
+backup_ssh_source: "/data/disks/1tbssd/backup/backup_ansible/ssh"

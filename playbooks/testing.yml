@@ -10,7 +10,7 @@
     # - odem.services.docker
     # - odem.services.monitoring
     # - odem.services.openwebui
-    # - odem.backup.backup
+    # - odem.os.backup
     
     # odem.os tweaks (former odem.optimize)
     # - odem.os.tweaks

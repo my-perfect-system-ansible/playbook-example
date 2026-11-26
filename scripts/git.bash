@@ -38,7 +38,6 @@ REPOS=(
     ../odem-development
     ../odem-desktop
     ../odem-hardening
-    ../odem-backup
     ../odem-services
     ../odem-alloy
     ../playbook-example
