@@ -6,16 +6,16 @@
 #   scripts/git.bash pull            fast-forward pull; skip dirty trees
 #   scripts/git.bash commit "msg"    add, commit (with MSG), push per dirty repo
 #
-# Doubles as the shared library for scripts/publish.bash, which sources
-# this file for the REPOS list + repo_url(). Repo root = the directory
-# above this scripts/ folder; the REPOS paths are relative to it:
-# odem-*/manage/playbook-example are siblings in the my-perfect-system-ansible
+# Doubles as the shared library: scripts/publish.bash sources it for the
+# REPOS list + repo_url(); scripts/{lint,list-roles,molecule}.bash for the
+# derived COLLECTIONS list (the odem-* subset of REPOS). Repo root = the
+# directory above this scripts/ folder; the REPOS paths are relative to
+# it: odem-*/playbook-example are siblings in the my-perfect-system-ansible
 # org, the mps-* repos sit two levels up in my-perfect-system.
 
 REPO_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
 REPOS=(
-    ../manage
     ../../my-perfect-system/mps-container-docker
     ../../my-perfect-system/mps-desktop-kanata
     ../../my-perfect-system/mps-desktop-qtile
@@ -42,6 +42,16 @@ REPOS=(
     ../odem-alloy
     ../playbook-example
 )
+
+# The odem-* collection repos — a derived subset of REPOS (basenames
+# matching `odem-*`). lint.bash / list-roles.bash / molecule.bash
+# iterate this list.
+COLLECTIONS=()
+for _repo in "${REPOS[@]}"; do
+    case "$(basename "$_repo")" in
+        odem-*) COLLECTIONS+=("$_repo") ;;
+    esac
+done
 
 # GitHub clone URL for a repo basename: mps-* lives in the
 # my-perfect-system org, everything else in my-perfect-system-ansible.

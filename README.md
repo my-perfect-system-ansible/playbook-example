@@ -20,6 +20,11 @@ just vault-edit home                # edit it ($EDITOR); vault-view prints it
 just check srv                     # syntax-check every playbook
 just graph home                    # inventory tree (hosts + groups)
 
+just list-roles                   # every role in every odem-* collection
+just lint                         # yamllint + ansible-lint per collection
+just molecule backup              # run a role's molecule scenario
+just list-collections home        # installed collections of an inventory
+
 just git-clone                    # clone every missing sibling repo (fresh install)
 just git-status                   # git status + last commit per sibling repo
 just git-pull                     # fast-forward pull per repo; skip dirty
@@ -100,8 +105,8 @@ it is pure infrastructure so far.
 
 ## Documentation
 
-- [`AGENTS.md`](AGENTS.md) — layout + conventions (incl. merge provenance)
-- `manage/AGENTS.md` — cross-collection conventions
+- [`AGENTS.md`](AGENTS.md) — this repo's layout + conventions, merged with the
+  ecosystem conventions from the retired `manage` repo (2026-11-26)
 
 ## License
 

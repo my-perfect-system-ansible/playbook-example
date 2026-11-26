@@ -12,6 +12,15 @@
 #   git.bash                                    cross-repo git ops (clone|status|pull|commit)
 #   publish.bash                                Galaxy publish per odem-* collection
 
+#   lint.bash / list-roles.bash / molecule.bash   collection lint, role listing, molecule
+
+default: usage
+
+usage:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just --list
+
 # List inventories and playbooks
 list:
     #!/usr/bin/env bash
@@ -52,6 +61,30 @@ check inventory='home':
 # via collections_path (scripts/install-collections.bash).
 install-forced collections_path="../.ansible/ansible_collections":
     scripts/install-collections.bash "{{collections_path}}"
+
+# --- Collection tooling (scripts/{lint,list-roles,molecule}.bash) ---
+# The scripts iterate the seven odem-* sibling collections — the
+# COLLECTIONS subset of REPOS derived in scripts/git.bash.
+
+# List every role in every odem-* collection with its description
+list-roles:
+    scripts/list-roles.bash
+
+# Run ansible-lint + yamllint on every odem.* collection (skips repos
+# without lint configs; exits non-zero if any collection fails)
+lint:
+    scripts/lint.bash
+
+# Run a Molecule scenario for a single role (name or odem.<col>.<role> FQN)
+molecule role:
+    scripts/molecule.bash "{{role}}"
+
+# List every installed collection of an inventory
+list-collections inventory='home':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "inventories/{{inventory}}"
+    ansible-galaxy collection list
 
 # --- Cross-repo git + Galaxy publish (scripts/git.bash, publish.bash) ---
 # git.bash iterates every sibling repo (its REPOS list + clone URLs);
