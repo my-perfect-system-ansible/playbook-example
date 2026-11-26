@@ -10,7 +10,12 @@ inventory-agnostic and every environment detail lives in
 
 ```
 playbook-example/
-├── Justfile                    # list/run/check/graph + per-playbook targets
+├── Justfile                    # thin wrappers — logic in scripts/
+├── scripts/                   # run-playbook / check-playbooks / install-collections / vault
+│   ├── run-playbook.bash      # cd inventory + vault pw resolution + ansible-playbook
+│   ├── check-playbooks.bash   # --syntax-check every playbook
+│   ├── install-collections.bash # odem-* build + force-install (install-forced)
+│   └── vault.bash             # vault lifecycle; also the shared pw-resolution lib (sourced by run-playbook.bash)
 ├── playbooks/                  # COMMON playbooks — hosts: all
 │   ├── bootstrap.yml           #   odem.os.user + settings + packages + tools
 │   ├── terminal_minimal.yml   #   bootstrap + bash/vim/tmux
@@ -64,6 +69,13 @@ playbook-example/
 
 ## Justfile
 
+- Recipes are thin wrappers — the logic lives in `scripts/`:
+  `run-playbook.bash` (run), `check-playbooks.bash` (check),
+  `install-collections.bash` (install-forced) and `vault.bash` (the
+  `vault-*` targets). `vault.bash` doubles as the shared library:
+  `resolve_vault_password` sets the `VA` array, sourced by the other two
+  under its `BASH_SOURCE` main guard.
+
 - `just <playbook> [inventory] [args…]` — one target per playbook,
   `inventory` defaults to `home`.
 - `just run <inventory> <playbook> [args…]` — generic form; extra args pass
@@ -98,6 +110,9 @@ playbook-example/
   password-file convention; no variables moved into the vault yet.
   `ansible.cfg` `vault_password_file` intentionally omitted (eager failure
   on a missing file — the Justfile resolves the password source instead).
+- Justfile logic extracted into `scripts/*.bash` (2026-11-26) — recipes are
+  one-line wrappers; vault password resolution lives once in `vault.bash`
+  (was duplicated inline across `run`, `check` and every vault recipe).
 
 ## See also
 - `manage/Justfile` — `lint`, `molecule`, `publish`, `list-roles`, `git-clone`, …
