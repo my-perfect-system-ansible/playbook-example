@@ -23,7 +23,7 @@ to Ansible Galaxy as the long-term distribution path.
 | `odem-development/` | `odem.development` | 0.3.2 | odem.os, ansible.posix | Per-user development tooling — opencode, java, dotnet, espidf, latex, lmstudio, unity, pi. |
 | `odem-desktop/` | `odem.desktop` | 0.5.0 | odem.os, ansible.posix | Desktop GUI / window manager environment — grubmenu and browser (firefox + brave), plus per-user qtile/rofi/thunar/trayhub/essentials (incl. gnome tools)/kanata/lightdm (greeter + x11 + wm) and system-level thunderbird/spotify. |
 | `odem-hardening/` | `odem.hardening` | 0.4.0 | odem.os, ansible.posix, community.crypto | System-level hardening — firewall (iptables), apparmor, auditd, AIDE, fail2ban, Wazuh agent, CIS lockdown (clones `ansible-lockdown/DEBIAN13-CIS`). |
-| `odem-services/` | `odem.services` | 0.4.3 | odem.os, ansible.posix, community.docker | Service deployment and configuration — docker, openvpn (from the `mps-services-openvpn` repo), monitoring (mps-services-monitoring stack), openwebui. |
+| `odem-services/` | `odem.services` | 0.4.3 | odem.os, ansible.posix, community.docker | Service deployment and configuration — docker (via the `mps-services-docker` repo), openvpn (from the `mps-services-openvpn` repo), monitoring (mps-services-monitoring stack), openwebui. |
 | `odem-alloy/` | `odem.alloy` | 0.2.0 | odem.os, ansible.posix | Observability collection — Alloy agent install plus host, docker, monitoring, and fail2ban log collection, blackbox, proxy, and sms exporters. |
 
 The `odem-base`, `odem-users`, `odem-optimize`, and `odem-backup` collections were deleted (2026-11): their content merged into `odem.os` — `odem.base.identity` + `odem.users.*` into the `user` role + `plugins/filter/`, `odem.optimize.{zram,ramdisks,kmscon}` into the `tweaks` role, `odem.backup.backup` into the `backup` role. The conventions documentation lives in this file. Old GitHub URLs 301-redirect.
@@ -78,6 +78,12 @@ system tools with `sudo`).
 | `mps-desktop-thunar/` | Thunar file manager config — `config/{Thunar,xfce4}` deployed to `~/.config/`. |
 | `mps-desktop-trayhub/` | mps-trayhub — modular pluggable system-tray application (PyQt6): `tray_hub/` package + `main.py`, `user_plugins/` seeds → `~/.config/mps-trayhub/plugins/`; `install.sh` deploys per user (app to `~/.local/share/mps-trayhub`, launcher, rofi wiring, desktop entries) — run per user by the `odem.desktop.trayhub` role; PyQt6 runtime via `install-{debian,fedora}.sh` (`python3-pyqt6`) or the role's `trayhub_packages`. |
 | `mps-container-docker/` | self-contained mps container image — Debian base, odem.* collections via public git links (`requirements.yml`), playbook-example clone, build-time apply via the local provider; `install.sh` = `docker compose build`; its own Justfile (build/run/shell/config/up/down) took over the former manage `docker-*` targets. |
+
+| Repo | Purpose |
+|---|---|
+| `mps-services-docker/` | Docker Engine installer — Debian: official Docker apt repo (`docker-ce` suite); Fedora: packaged `moby-engine` + `docker-compose` (version-checked, official dnf repo as fallback). The engine is never started by the installer (the `odem.services.docker` role owns service management + daemon.json). |
+| `mps-services-openvpn/` | OpenVPN docker-compose stack (server/client/networks/PKI generation) — cloned and driven by `odem.services.openvpn`. |
+| `mps-services-monitoring/` | Prometheus + Loki + Grafana (+ optional Wazuh) docker-compose stack — cloned and driven by `odem.services.monitoring`. |
 
 The sibling-repo list these tables describe lives in `scripts/git.bash`
 (`REPOS`) — `just git-{clone,status,pull}` / `just git-commit 'msg'` iterate
@@ -221,7 +227,7 @@ or with plain `when: entity.user_roles.<key> | default(false)` conditions.
 Both inputs to the identity model are declared and defaulted **exactly once** in `odem-os/roles/user/`:
 
 - `odem-os/roles/user/meta/argument_specs.yml` — canonical spec, including the **full single-entity schema** for a `user_catalog` entry (every supported field: `name`, `uid`, `group`, `groups`, `append_groups`, `comment`, `shell`, `home`, `create_home`, `system`, `expires`, `password`, `ssh_keys`, `authorized_keys`, `sudo`, `user_roles`).
-- `odem-os/roles/user/defaults/main.yml` — canonical defaults, including the ecosystem-wide `user_default_*` globals, per-user field defaults (`user_shell`, `user_create_home`, `user_system`, `user_expires`, `user_groups`, `user_admin_groups`, `user_append_groups`, `user_password`), two role-set profiles (`user_roles_default`, `user_roles_minimal`), group management (`user_groups_list`, `user_enable_group_extraction`), sudo macros (`user_sudo_macros`, `user_sudo_macros_file`), and empty `user_catalog: {}` / `user_list: []` ready to be overridden per host.
+- `odem-os/roles/user/defaults/main.yml` — canonical defaults, including the ecosystem-wide `user_default_*` globals, per-user field defaults (`user_shell`, `user_create_home`, `user_system`, `user_expires`, `user_groups`, `user_admin_groups`, `user_append_groups`, `user_password`), two role-set profiles (`user_roles_default`, `user_roles_minimal`), group management (`user_groups_list`, `user_enable_group_extraction`), sudo macros (`user_sudo_macros`, `user_sudo_macros_files`), and empty `user_catalog: {}` / `user_list: []` ready to be overridden per host.
 
 Per-user roles **do not** declare `user_catalog` or `user_list` in their own `argument_specs.yml` or `defaults/main.yml` — they flow through the play scope into the lazy identity guard. Re-declaring them would duplicate the schema and risk drift.
 
@@ -301,11 +307,12 @@ The convention is: `user_roles_default` defines the global default per-user role
 ```
 playbook-example/
 ├── Justfile                    # thin wrappers — logic in scripts/
-├── scripts/                   # run-playbook / check-playbooks / install-collections / vault / git / publish / lint / list-roles / molecule
+├── scripts/                   # run-playbook / check-playbooks / install-collections / vault / git / machine bootstrap / publish / lint / list-roles / molecule
 │   ├── run-playbook.bash      # cd inventory + vault pw resolution + ansible-playbook
 │   ├── check-playbooks.bash   # --syntax-check every playbook
 │   ├── install-collections.bash # odem-* build + force-install (install-forced)
 │   ├── git.bash               # cross-repo git ops clone|status|pull|commit + shared REPOS/COLLECTIONS list (moved from manage/)
+│   ├── bootstrap-machine.bash # fresh-machine bootstrap: prereqs + anchor clone + fetch every repo (sources git.bash)
 │   ├── publish.bash           # ansible-galaxy collection publish per odem-* (moved from manage/; sources git.bash)
 │   ├── lint.bash              # yamllint + ansible-lint per collection (moved from manage/)
 │   ├── list-roles.bash        # role listing per collection (moved from manage/)
@@ -341,13 +348,54 @@ playbook-example/
 - No `galaxy.yml` — an overlay consuming the collections, not a collection.
 - **Vault**: secrets live encrypted at `inventories/<name>/group_vars/all/vault.yml` (auto-loaded for every host; the encrypted file is committed — nothing sensitive is in the repo). The password file lives INSIDE its inventory at `inventories/<name>/vault-pass` (mode 0600, **gitignored** via `.gitignore` — never commit it; written by `just vault-pass-create <inv>`); `VAULT_ASK=1` prompts instead. `ansible.cfg` deliberately sets NO `vault_password_file` — a missing file there fails EVERY ansible run eagerly (verified ansible-core 2.16: startup error even with no encrypted content, `--syntax-check` included). The Justfile passes `--vault-password-file` conditionally instead.
 
+## Machine bootstrap
+
+`scripts/bootstrap-machine.bash` is the single entry point for a fresh
+machine — one command fetches every repo of the ecosystem (26: the 7
+`odem-*` collections + `playbook-example` + 18 `mps-*` repos):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/my-perfect-system-ansible/playbook-example/main/scripts/bootstrap-machine.bash | bash
+```
+
+Two phases, one file:
+
+1. **standalone** (piped from curl, no sibling `git.bash`): installs
+   prerequisites — `git`, plus the `python3.13` interpreter pin on Fedora 45+
+   (the manual bootstrap prerequisite from
+   [Platform support conventions](#platform-support-conventions), now encoded
+   here) — clones the anchor repo `playbook-example` (the only hardcoded URL;
+   this repo owns the cross-repo tooling), then re-execs the cloned copy. A
+   clone predating the script falls back to plain `git.bash clone`.
+2. **from clone** (sibling `git.bash` present): sources `scripts/git.bash`
+   and clones every missing sibling — the REPOS list stays single-sourced
+   there.
+
+Layout created — the root is overridable with `MPS_REPO_BASE` (default
+`/srv/repo/github`, the canonical repo root per `user_default_repo_dir`; pass
+a custom path for dedicated data disks):
+
+```
+${MPS_REPO_BASE}/my-perfect-system-ansible/{odem-*,playbook-example}
+${MPS_REPO_BASE}/my-perfect-system/mps-*
+```
+
+Requires sudo rights (package installs; root-owned base creation).
+Idempotent — present repos are skipped, safe to re-run; `just git-clone`
+remains the in-tree resync, `just git-pull` the update. Provisioning is NOT
+part of the bootstrap — accounts/config stay with the playbooks
+(`just bootstrap <inv>`); the script prints the next steps. The roles' own mps
+clones under `user_default_repo_dir_mps` are independent of this development
+tree — they clone/update themselves during playbook runs.
+
 ## Justfile
 
 Recipes are thin wrappers — the logic lives in `scripts/`:
 `run-playbook.bash` (run), `check-playbooks.bash` (check),
 `install-collections.bash` (install-forced), `vault.bash` (the
 `vault-*` targets), `git.bash` (the `git-*` targets, subcommands
-`clone|status|pull|commit`), `publish.bash` (Galaxy publish), and — moved
+`clone|status|pull|commit`), `bootstrap-machine.bash` (the fresh-machine
+bootstrap; sources `git.bash`), `publish.bash` (Galaxy publish), and — moved
 from `manage/` 2026-11-26 — `lint.bash` / `list-roles.bash` /
 `molecule.bash` (collection tooling). Shared libraries sourced under their
 `BASH_SOURCE` main guards: `vault.bash` (`resolve_vault_password`) and
@@ -371,6 +419,11 @@ from `manage/` 2026-11-26 — `lint.bash` / `list-roles.bash` /
   lint configs; exits non-zero if any collection fails).
 - `just molecule <role>` — run a role's molecule/default scenario (role name
   or `odem.<col>.<role>` FQN).
+- `just bootstrap-machine` — fresh-machine bootstrap: prerequisites + clone
+  playbook-example (when missing) + fetch every sibling repo. Curl-able
+  standalone entry (`scripts/bootstrap-machine.bash`; see
+  [Machine bootstrap](#machine-bootstrap)).
+
 - `just git-{clone,status,pull}` / `just git-commit 'msg'` — cross-repo git
   ops over every sibling repo, and `just publish [server]` —
   `ansible-galaxy collection publish` per `odem-*` collection (token from
@@ -402,6 +455,40 @@ just vault-*                    # vault lifecycle (see Justfile section)
 ```
 
 The default install path (`../.ansible/ansible_collections`) matches the first `collections_path` entry in `inventories/<name>/ansible.cfg`.
+
+## Molecule
+
+Every role of every collection carries a `molecule/default` scenario — a
+**lightweight dual-platform smoke test** (`just molecule <role>` or
+`just molecule odem.<col>.<role>`; docker daemon required):
+
+- **Platforms**: `geerlingguy/docker-debian13-ansible` +
+  `geerlingguy/docker-fedora44-ansible`, names `<col>-<role>-{debian,fedora}`.
+  Both families run on every scenario — Fedora paths get real coverage.
+- **Converge** applies the role once; molecule's idempotence phase asserts a
+  second run changes nothing. Per-user roles opt a synthetic `molecule_user`
+  into exactly their own role via `user_roles.<key>: true`.
+- **Verify** = 2-3 basic assertions (stat / package_facts) — deliberately
+  minimal; deeper tests come later.
+- **Container-safety toggles** (defaults `true`, scenarios set `false`):
+  `settings_enable_console` / `settings_enable_time` (systemd + timedatectl),
+  `tweaks_enable_zram` / `tweaks_enable_ramdisks`,
+  `kanata_enable_udev_reload` / `kanata_enable_kernel_module` /
+  `kanata_enable_service`, `grubmenu_enable_regenerate` (no real `/boot`),
+  `lightdm_enable_service` (containers have no systemd).
+  The deploys (files, configs, packages) stay ungated.
+- **kmscon** needs `trixie-backports` on Debian — the tweaks scenario
+  self-configures that pocket in a `pre_tasks` step (Fedora 44 ships kmscon).
+- Tooling: `~/.venvs/molecule` (molecule + molecule-docker, `ansible-core`
+  pinned `2.19.11`, passlib for controller-side `password_hash`);
+  `scripts/molecule.bash` prepends the venv, sets
+  `ANSIBLE_ALLOW_BROKEN_CONDITIONALS=1` (molecule-docker 2.1.0 bundled
+  playbooks predate core 2.19 strict conditional typing) and
+  `ANSIBLE_COLLECTIONS_PATH` (our build dir + `~/.ansible` for ansible.posix).
+
+State (2026-11-26): all 27 roles of os/terminal/desktop pass on both
+platforms. Hardening + development scenarios are still the old single-platform
+generated stubs.
 
 ## Publishing path to Galaxy
 
@@ -468,12 +555,19 @@ The following cleanup passes have been committed to the local repos:
 - **`manage/Justfile` added** — cross-repo git ops (`git-status`, `git-pull`, `git-commit`), example runner (`run-example`), and force build/install (`install-forced` → `ansible-galaxy collection build --force && install --force` into `../.ansible/ansible_collections/`). Replaces the prior `odem-examples/` Make for local development loops. (The `manage` repo itself was retired 2026-11-26 — all of this lives in this repo now.)
 - **Feature toggles hoisted to top of `defaults/main.yml`** — every role defaults file with `<rolename>_enable_*` toggles was restructured to put the toggles in a top section under `# Feature toggles — naming pattern: <rolename>_enable_<feature>`, followed by a `# Regular configuration` section. 13 of 49 role defaults files were affected (the rest have no toggles yet). Toggle grouping is now visually consistent across roles.
 - **`examples/inventories/home/` reorganised** — `host_vars/testvm.yml` holds the host-specific `ansible_host`; `group_vars/all.yml` holds `ansible_user: deploy` (shared by every host); `group_vars/all/odem_*.yml` are commented-out reference dumps of every collection's role defaults, so users can see what they have available to override.
+- **`odem.os.user` sudoers — per-group macro files + NOPASSWD (2026-11-27)** — the single shared Cmnd_Alias macros file (`user_sudo_macros_file`, `/etc/sudoers.d/00_macros`) was split per macro group: `user_sudo_macros_files` (dict alias → path) now renders one file per alias (`/etc/sudoers.d/00_macros_admin_default|admin_debug|admin_minimal`) via a looped copy task, and the legacy merged `00_macros` is removed. The per-user rule line now always carries the `NOPASSWD` flag — `sudo.nopasswd: true` → `user ALL=(ALL) NOPASSWD: ALL`, otherwise `user ALL=(ALL) NOPASSWD: <aliases>`; the macro branch previously rendered the bare aliases, which prompts for a password instead of running the commands password-free.
+- **`odem.desktop.qtile` — config dir mode clobber (2026-11-27)** — the per-user config copy (`remote_src: true` + directory src) carried `mode: "0644"`, which `copy` applies to the destination directory itself — `~/.config/qtile` deployed as `drw-r--r--`, unstat-able by its owner, so `import settings` (and every `qtile-{restart,reload,autostart}` helper reading `settings.QTILE_VENV_REL`) died with `ModuleNotFoundError` and an empty venv path. `mode` dropped from that copy (pre-created `0700` + `directory_mode: "0700"` remain), mirroring the earlier `odem.terminal.nvim` fix.
+- **`odem.desktop.lightdm` — autologin + Fedora service enable (2026-11-27)** — the role now covers the install-time steps the testvm session debugging surfaced. (a) Fedora ships no systemd preset for lightdm — a new `lightdm_enable_service`-gated task enables + starts the unit (RedHat-only; Debian's package postinst already enables it; molecule sets the toggle false). (b) New `tasks/autologin.yml` + `lightdm_enable_autologin` toggle configure passwordless graphical autologin: system `autologin` group + membership for the first present user opted into `user_roles.desktop_lightdm` (or `lightdm_autologin_user`), a group-gated `/etc/pam.d/lightdm-autologin` template (RedHat-only — Fedora's lightdm package ships none, and without it the autologin session dies; Debian's package ships its own), and a dropin `/etc/lightdm/lightdm.conf.d/99-mps-autologin.conf` — the `autologin-*` options must sit in `[Seat:*]`, lightdm silently ignores them in `[LightDM]` (logs "contains unknown option"). A new handler restarts lightdm when the dropin/PAM change. All four pieces were proven live on testvm (Fedora 45) before being written into the role.
+
+- **`odem.desktop.lightdm` — graphical boot target (2026-11-28)** — enabling the lightdm unit only wires the `display-manager.service` alias; `graphical.target` is what pulls that alias in at boot. testvm (Fedora Server/Everything preset) booted `multi-user.target`, so after a reboot only a manual `systemctl restart lightdm` brought up the greeter. New `lightdm_enable_service`-gated task (family-agnostic) links `/etc/systemd/system/default.target` → `/usr/lib/systemd/system/graphical.target` via `ansible.builtin.file` (`state: link`, `force: true` — idempotent, replaces the `systemctl set-default` command). Molecule stays safe: scenarios keep setting the toggle false.
+
+- **Machine bootstrap (2026-11-28)** — new `scripts/bootstrap-machine.bash` + `just bootstrap-machine`: the fresh-machine entry point — prerequisites (git; `python3.13` on Fedora 45+, the documented manual prerequisite now encoded), clone of the anchor repo `playbook-example` (the only hardcoded URL), then delegation to `scripts/git.bash clone` so the REPOS list stays single-sourced. Curl-able standalone, `MPS_REPO_BASE` root override (default `/srv/repo/github`). See [Machine bootstrap](#machine-bootstrap).
 
 ## Deferred (regenerate in dedicated sessions)
 
 - Per-role / per-collection **README.md** files
 - **AGENTS.md** files inside individual collection subdirectories
-- **Molecule** tests for every role
+- **Molecule** tests for every role — os/terminal/desktop (27 roles) carry lightweight dual-platform scenarios (see [Molecule](#molecule)); services/alloy scenarios remain TODO
 - Cross-collection tier model (base / common / optional) — currently each leaf carries its own 3-tier playbook structure; future design may consolidate
 - New changelog fragments (will be added once the refactor work is wrapped up)
 

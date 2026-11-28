@@ -5,6 +5,20 @@ collections. Playbooks are inventory-agnostic — every play targets `all`
 hosts — and live together in `playbooks/`; everything environment-specific
 (hosts, groups, vars) lives in `inventories/<name>/`.
 
+## New machine
+
+Bootstrap a fresh machine — prerequisites (git; the python3.13 interpreter
+pin on Fedora 45+) plus every repo of the ecosystem (26: the 7 `odem-*`
+collections + this repo + 18 `mps-*` repos):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/my-perfect-system-ansible/playbook-example/main/scripts/bootstrap-machine.bash | bash
+```
+
+`MPS_REPO_BASE` overrides the root (default `/srv/repo/github`). From an
+existing clone the same steps are `just bootstrap-machine` (idempotent) —
+details in [AGENTS.md](AGENTS.md) → *Machine bootstrap*.
+
 ## Usage
 
 ```bash
@@ -25,6 +39,7 @@ just lint                         # yamllint + ansible-lint per collection
 just molecule backup              # run a role's molecule scenario
 just list-collections home        # installed collections of an inventory
 
+just bootstrap-machine          # fresh machine: prereqs + fetch every repo
 just git-clone                    # clone every missing sibling repo (fresh install)
 just git-status                   # git status + last commit per sibling repo
 just git-pull                     # fast-forward pull per repo; skip dirty
@@ -44,7 +59,7 @@ just run home bootstrap -i inventory_local.ini     # home: secondary ini
 | Path | Content |
 |---|---|
 | `playbooks/` | common playbooks — tier chains, `services`, `alloy`, `hardening`, `wazuh`, `all`, `testing` — all `hosts: all` |
-| `scripts/` | the Justfile's logic — `run-playbook.bash`, `check-playbooks.bash`, `install-collections.bash`, `git.bash` (`clone|status|pull|commit`), `publish.bash`, `vault.bash` (recipes are thin wrappers) |
+| `scripts/` | the Justfile's logic — `run-playbook.bash`, `check-playbooks.bash`, `install-collections.bash`, `git.bash` (`clone|status|pull|commit`), `bootstrap-machine.bash` (fresh-machine bootstrap), `publish.bash`, `vault.bash` (recipes are thin wrappers) |
 | `inventories/<name>/ansible.cfg` | `collections_path` + connection settings (`inventory = ./inventory.ini`) |
 | `inventories/<name>/inventory.ini` | hosts + groups of that inventory |
 | `inventories/home/inventory_local.ini` | in-place apply variant (same host as the ssh entry, kept separate to avoid var conflicts) |

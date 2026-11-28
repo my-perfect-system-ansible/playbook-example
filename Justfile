@@ -10,6 +10,7 @@
 #   install-collections.bash                   odem-* build + force-install
 #   vault.bash                                  vault lifecycle + password resolution
 #   git.bash                                    cross-repo git ops (clone|status|pull|commit)
+#   bootstrap-machine.bash                      fresh-machine bootstrap: prereqs + fetch every repo
 #   publish.bash                                Galaxy publish per odem-* collection
 
 #   lint.bash / list-roles.bash / molecule.bash   collection lint, role listing, molecule
@@ -98,9 +99,15 @@ list-collections inventory='home':
 # odem-*/manage/playbook-example in the my-perfect-system-ansible org,
 # mps-* two levels up in my-perfect-system.
 
-# Clone every missing sibling repo from GitHub (fresh-install helper)
+# Clone every missing sibling repo from GitHub (in-tree resync; fresh machines: bootstrap-machine)
 git-clone:
     scripts/git.bash clone
+
+# Bootstrap a fresh machine: prerequisites (git; python3.13 interpreter pin on
+# Fedora 45+), clone playbook-example when missing, then fetch every sibling
+# repo. Also curl-able standalone — see AGENTS.md → Machine bootstrap
+bootstrap-machine:
+    scripts/bootstrap-machine.bash
 
 # Show git status + last commit of every sibling repo
 git-status:

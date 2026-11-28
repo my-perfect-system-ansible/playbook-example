@@ -91,6 +91,11 @@
 #   ADMIN_MINIMAL:
 #     - "/usr/bin/su -"
 
+# user_sudo_macros_files:
+#   ADMIN_DEFAULT: "/etc/sudoers.d/00_macros_admin_default"
+#   ADMIN_DEBUG: "/etc/sudoers.d/00_macros_admin_debug"
+#   ADMIN_MINIMAL: "/etc/sudoers.d/00_macros_admin_minimal"
+
 # user_enable_print_passwords_plaintext: false
 
 

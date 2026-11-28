@@ -22,6 +22,7 @@ REPOS=(
     ../../my-perfect-system/mps-desktop-rofi
     ../../my-perfect-system/mps-desktop-thunar
     ../../my-perfect-system/mps-desktop-trayhub
+    ../../my-perfect-system/mps-services-docker
     ../../my-perfect-system/mps-services-monitoring
     ../../my-perfect-system/mps-services-openvpn
     ../../my-perfect-system/mps-terminal-bash

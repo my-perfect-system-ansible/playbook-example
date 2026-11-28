@@ -1,5 +1,11 @@
 ---
 
+# Fedora 45 ships Python 3.15, which breaks ansible-core 2.19 module
+# execution (dataclasses._is_type removed) — pin the interpreter until
+# ansible-core supports 3.15. Manual bootstrap prerequisite on the host:
+#   sudo dnf install -y python3.13
+ansible_python_interpreter: /usr/bin/python3.13
+
 #  alloy
 base_custom_labels: "mps_alloy_os_name=debian13,mps_alloy_systype=hw,mps_alloy_physloc=de"
 base_remote_prometheus_url: "http://blackbeard.tortuga.lokal:9090/api/v1/write"
